@@ -1009,6 +1009,7 @@ location=7
 mode=Info3
 type=key
 data=9
+
 event=GestureHelp
 event=Mode default
 label=Gesture Help
@@ -1021,6 +1022,11 @@ event=QuickGuide
 event=Mode default
 label=Quick Guide
 location=9
+
+event=Frequencies
+event=Mode default
+label=Frequencies
+location=10
 
 # -------------
 # mode=Menu
@@ -1448,3 +1454,22 @@ mode=default
 type=gesture
 data=ULDR
 event=QuickMenu
+
+# Radio frequencies
+
+mode=Info3
+type=key
+data=9
+event=Frequencies
+event=Mode default
+label=Frequencies
+location=8
+
+
+mode=RemoteStick
+type=key
+data=0
+event=Frequencies
+label=Frequencies
+location=35
+
