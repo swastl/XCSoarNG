@@ -47,13 +47,65 @@ RadioFrequencyEntryDialog(const char *caption,
   if (!result)
     return false;
 
-  /* only update value if not already set by the Clear button */
-  if (value.IsDefined() || nullable) {
+  /* only update value if not already set by the Clear button;
+     in non-nullable mode always read from the digit entry (even when the
+     initial value was undefined), but in nullable mode skip the read when
+     Clear was pressed (which sets value to Null before returning) */
+  if (value.IsDefined() || !nullable) {
     auto &digit_entry = (DigitEntry &)dialog.GetWidget().GetWindow();
     RadioFrequency new_value = digit_entry.GetRadioFrequency();
     if (new_value.IsDefined())
       value = new_value;
   }
 
+  return true;
+}
+
+bool
+RadioFrequencyEntryDialogWithTarget(const char *caption,
+                                    RadioFrequency &value,
+                                    bool &set_active) noexcept
+{
+  const DialogLook &look = UIGlobals::GetDialogLook();
+
+  TWidgetDialog<FixedWindowWidget>
+    dialog(WidgetDialog::Auto{}, UIGlobals::GetMainWindow(), look, caption);
+
+  ContainerWindow &client_area = dialog.GetClientAreaWindow();
+
+  WindowStyle control_style;
+  control_style.Hide();
+  control_style.TabStop();
+
+  auto entry = std::make_unique<DigitEntry>(look);
+  entry->CreateRadioFrequency(client_area, client_area.GetClientRect(),
+                              control_style);
+  entry->Resize(entry->GetRecommendedSize());
+  if (value.IsDefined())
+    entry->SetValue(value);
+
+  bool chosen_active = true;
+  dialog.AddButton(_("Active"), [&dialog, &chosen_active](){
+    chosen_active = true;
+    dialog.SetModalResult(mrOK);
+  });
+  dialog.AddButton(_("Standby"), [&dialog, &chosen_active](){
+    chosen_active = false;
+    dialog.SetModalResult(mrOK);
+  });
+  dialog.AddButton(_("Cancel"), mrCancel);
+
+  dialog.SetWidget(std::move(entry));
+
+  if (dialog.ShowModal() != mrOK)
+    return false;
+
+  auto &digit_entry = (DigitEntry &)dialog.GetWidget().GetWindow();
+  RadioFrequency new_value = digit_entry.GetRadioFrequency();
+  if (!new_value.IsDefined())
+    return false;
+
+  value = new_value;
+  set_active = chosen_active;
   return true;
 }

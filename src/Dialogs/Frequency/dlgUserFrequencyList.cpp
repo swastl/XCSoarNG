@@ -87,6 +87,8 @@ class UserFrequencyListWidgetImpl final : public ListWidget {
   TwoTextRowsRenderer row_renderer;
 
   Button *select_button = nullptr;
+  Button *active_button = nullptr;
+  Button *standby_button = nullptr;
   Button *add_button = nullptr;
   Button *edit_button = nullptr;
   Button *delete_button = nullptr;
@@ -159,6 +161,26 @@ UserFrequencyListWidgetImpl::CreateButtons(WidgetDialog &dialog) noexcept
     });
 
     dialog.AddButton(_("Close"), mrCancel);
+  } else if (mode == UserFrequencyListWidget::DialogMode::SELECT_BOTH) {
+    auto on_select = [this, &dialog](bool for_active) {
+      const unsigned index = GetList().GetCursorIndex();
+      if (index >= g_user_frequencies.size())
+        return;
+      const auto &entry = g_user_frequencies[index];
+      if (for_active)
+        ActionInterface::SetActiveFrequency(entry.frequency,
+                                            entry.name.c_str());
+      else
+        ActionInterface::SetStandbyFrequency(entry.frequency,
+                                             entry.name.c_str());
+      dialog.SetModalResult(mrOK);
+    };
+
+    active_button = dialog.AddButton(_("Active"),
+                                     [on_select]() { on_select(true); });
+    standby_button = dialog.AddButton(_("Standby"),
+                                      [on_select]() { on_select(false); });
+    dialog.AddButton(_("Cancel"), mrCancel);
   } else {
     select_button = dialog.AddButton(_("Select"), [this, &dialog]() {
       const unsigned index = GetList().GetCursorIndex();
@@ -217,10 +239,11 @@ UserFrequencyListWidgetImpl::OnActivateItem([[maybe_unused]] unsigned index) noe
   if (mode == UserFrequencyListWidget::DialogMode::BROWSE) {
     if (edit_button != nullptr)
       edit_button->Click();
-  } else {
+  } else if (mode != UserFrequencyListWidget::DialogMode::SELECT_BOTH) {
     if (select_button != nullptr)
       select_button->Click();
   }
+  /* SELECT_BOTH: no default action; user must press Active or Standby explicitly */
 }
 
 void
@@ -232,6 +255,10 @@ UserFrequencyListWidgetImpl::UpdateButtons() noexcept
 
   if (select_button != nullptr)
     select_button->SetEnabled(has_selection);
+  if (active_button != nullptr)
+    active_button->SetEnabled(has_selection);
+  if (standby_button != nullptr)
+    standby_button->SetEnabled(has_selection);
   if (edit_button != nullptr)
     edit_button->SetEnabled(has_selection);
   if (delete_button != nullptr)

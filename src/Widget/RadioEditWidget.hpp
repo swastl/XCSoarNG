@@ -6,33 +6,42 @@
 #include "Widget.hpp"
 #include "Form/Button.hpp"
 #include "RadioFrequency.hpp"
-#include "util/StaticString.hxx"
 
 #include <array>
 #include <memory>
 
 struct DialogLook;
+class DualFrequencyButtonRenderer;
 
 /**
- * A widget that shows buttons for editing a radio frequency:
- * two rows of buttons - offset buttons on top, swap/list on bottom.
+ * A widget that shows three buttons for a radio frequency:
+ * current frequency display, select from list, and swap.
  */
 class RadioEditWidget : public NullWidget {
 public:
-  static constexpr unsigned NUM_BUTTONS = 7;
+  static constexpr unsigned NUM_BUTTONS = 3;
+  static constexpr unsigned SWAP_BUTTON_INDEX = 2;
 
 private:
   const DialogLook &look;
 
   std::unique_ptr<std::array<Button, NUM_BUTTONS>> buttons;
 
-  StaticString<16> freq_text;
+  /** Non-owning pointer to the custom renderer for button 0 (owned by the Button). */
+  DualFrequencyButtonRenderer *freq_renderer = nullptr;
 
 public:
   explicit RadioEditWidget(const DialogLook &_look) noexcept
     : look(_look) {}
 
-  void UpdateFrequencyField(RadioFrequency freq) noexcept;
+  void UpdateFrequencyField(RadioFrequency active,
+                            RadioFrequency standby) noexcept;
+
+  /**
+   * Enable or disable the Swap button.  Call with false when no
+   * radio device is connected.
+   */
+  void SetSwapEnabled(bool enabled) noexcept;
 
   /* virtual methods from Widget */
   PixelSize GetMinimumSize() const noexcept override;
@@ -45,14 +54,11 @@ public:
   bool HasFocus() const noexcept override;
 
 protected:
-  virtual void OnFrequencyChanged(RadioFrequency new_freq) noexcept = 0;
+  virtual void OnEditFrequency() noexcept = 0;
   virtual void OnOpenList() noexcept = 0;
   virtual void OnSwapFrequency() noexcept = 0;
-  virtual RadioFrequency GetCurrentFrequency() const noexcept = 0;
 
 private:
-  void OnOffset(int offset_khz) noexcept;
-
   static std::array<PixelRect, NUM_BUTTONS>
   LayoutButtons(const PixelRect &rc) noexcept;
 };
