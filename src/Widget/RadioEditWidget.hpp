@@ -14,12 +14,12 @@
 struct DialogLook;
 
 /**
- * A widget that shows buttons for editing a radio frequency:
- * two rows of buttons - offset buttons on top, swap/list on bottom.
+ * A widget that shows three buttons for a radio frequency:
+ * current frequency display, select from list, and swap.
  */
 class RadioEditWidget : public NullWidget {
 public:
-  static constexpr unsigned NUM_BUTTONS = 7;
+  static constexpr unsigned NUM_BUTTONS = 3;
 
 private:
   const DialogLook &look;
@@ -45,15 +45,12 @@ public:
   bool HasFocus() const noexcept override;
 
 protected:
-  virtual void OnFrequencyChanged(RadioFrequency new_freq) noexcept = 0;
   virtual void OnEditFrequency() noexcept = 0;
   virtual void OnOpenList() noexcept = 0;
   virtual void OnSwapFrequency() noexcept = 0;
   virtual RadioFrequency GetCurrentFrequency() const noexcept = 0;
 
 private:
-  void OnOffset(int offset_khz) noexcept;
-
   static std::array<PixelRect, NUM_BUTTONS>
   LayoutButtons(const PixelRect &rc) noexcept;
 };

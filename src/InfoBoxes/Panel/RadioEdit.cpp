@@ -18,14 +18,14 @@ public:
       : RadioEditWidget(UIGlobals::GetDialogLook()), set_active_freq(active_freq) {}
 
 protected:
-  /* virtual methods from OffsetButtonsWidget */
-  void OnFrequencyChanged(RadioFrequency new_freq) noexcept override;
+  /* virtual methods from RadioEditWidget */
   void OnEditFrequency() noexcept override;
   void OnOpenList() noexcept override;
   void OnSwapFrequency() noexcept override;
   RadioFrequency GetCurrentFrequency() const noexcept override;
 
 private:
+  void ApplyFrequency(RadioFrequency freq) noexcept;
   const bool set_active_freq;
 };
 
@@ -41,12 +41,12 @@ LoadStandbyRadioFrequencyEditPanel([[maybe_unused]] unsigned id)
   return std::make_unique<RadioEdit>(false);
 }
 
-void RadioEdit::OnFrequencyChanged(RadioFrequency new_freq) noexcept
+void RadioEdit::ApplyFrequency(RadioFrequency freq) noexcept
 {
   if (set_active_freq)
-    ActionInterface::SetActiveFrequency(new_freq, "");
+    ActionInterface::SetActiveFrequency(freq, "");
   else
-    ActionInterface::SetStandbyFrequency(new_freq, "");
+    ActionInterface::SetStandbyFrequency(freq, "");
 }
 
 RadioFrequency RadioEdit::GetCurrentFrequency() const noexcept
@@ -64,7 +64,7 @@ void RadioEdit::OnEditFrequency() noexcept
   RadioFrequency freq = GetCurrentFrequency();
   if (!RadioFrequencyEntryDialog(_("Frequency"), freq, false))
     return;
-  OnFrequencyChanged(freq);
+  ApplyFrequency(freq);
   UpdateFrequencyField(freq);
 }
 
