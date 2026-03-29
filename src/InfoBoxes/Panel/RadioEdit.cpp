@@ -31,7 +31,8 @@ protected:
   RadioFrequency GetCurrentFrequency() const noexcept override;
 
   /* virtual methods from BlackboardListener */
-  void OnGPSUpdate(const MoreData &basic) override;
+  void OnCalculatedUpdate(const MoreData &basic,
+                          const DerivedInfo &calculated) override;
 
 private:
   void ApplyFrequency(RadioFrequency freq) noexcept;
@@ -63,10 +64,11 @@ void RadioEdit::Hide() noexcept
   RadioEditWidget::Hide();
 }
 
-void RadioEdit::OnGPSUpdate([[maybe_unused]] const MoreData &basic)
+void RadioEdit::OnCalculatedUpdate([[maybe_unused]] const MoreData &basic,
+                                   [[maybe_unused]] const DerivedInfo &calculated)
 {
-  /* GPS update fires each device data cycle - refresh the frequency display
-     so it picks up any changes reported by the radio hardware */
+  /* OnCalculatedUpdate fires after ApplyExternalSettings has run, so
+     ComputerSettings already reflects any frequency the device reported */
   UpdateFrequencyField(GetCurrentFrequency());
 }
 
@@ -80,12 +82,27 @@ void RadioEdit::ApplyFrequency(RadioFrequency freq) noexcept
 
 RadioFrequency RadioEdit::GetCurrentFrequency() const noexcept
 {
-  ComputerSettings &settings =
-      CommonInterface::SetComputerSettings();
-  if (set_active_freq)
-    return settings.radio.active_frequency;
-  else
-    return settings.radio.standby_frequency;
+  const ComputerSettings &settings = CommonInterface::GetComputerSettings();
+  const RadioFrequency stored = set_active_freq
+    ? settings.radio.active_frequency
+    : settings.radio.standby_frequency;
+
+  if (stored.IsDefined())
+    return stored;
+
+  /* Fallback: read the live frequency reported by the radio device
+     directly from NMEAInfo, in case ComputerSettings has not yet been
+     populated (e.g. before the computer thread runs ApplyExternalSettings) */
+  const MoreData &basic = CommonInterface::Basic();
+  if (set_active_freq) {
+    if (basic.settings.has_active_frequency.IsValid())
+      return basic.settings.active_frequency;
+  } else {
+    if (basic.settings.has_standby_frequency.IsValid())
+      return basic.settings.standby_frequency;
+  }
+
+  return RadioFrequency::Null();
 }
 
 void RadioEdit::OnEditFrequency() noexcept
