@@ -2,13 +2,104 @@
 // Copyright The XCSoar Project
 
 #include "RadioEditWidget.hpp"
+#include "Renderer/ButtonRenderer.hpp"
+#include "Renderer/TextRenderer.hpp"
+#include "ui/canvas/Canvas.hpp"
+#include "ui/canvas/Font.hpp"
 #include "Look/DialogLook.hpp"
+#include "Look/ButtonLook.hpp"
 #include "Screen/Layout.hpp"
 #include "Language/Language.hpp"
+#include "util/StaticString.hxx"
 
 #include <algorithm>
 #include <stdio.h>
 #include <string.h>
+
+/**
+ * Custom button renderer that shows two lines of text:
+ * the active frequency in the upper portion (button font) and
+ * the standby frequency in the lower portion (smaller font).
+ */
+class DualFrequencyButtonRenderer final : public ButtonRenderer {
+  ButtonFrameRenderer frame_renderer;
+  const Font &main_font;
+  const Font &sub_font;
+
+public:
+  StaticString<16> active_text{"---"};
+  StaticString<16> standby_text{"---"};
+
+  DualFrequencyButtonRenderer(const ButtonLook &look,
+                               const Font &_main_font,
+                               const Font &_sub_font) noexcept
+    : frame_renderer(look), main_font(_main_font), sub_font(_sub_font) {}
+
+  unsigned GetMinimumButtonWidth() const noexcept override {
+    return ButtonFrameRenderer::GetMargin() * 2 + Layout::GetTextPadding() * 2;
+  }
+
+  void DrawButton(Canvas &canvas, const PixelRect &rc,
+                  ButtonState state) const noexcept override;
+};
+
+void
+DualFrequencyButtonRenderer::DrawButton(Canvas &canvas, const PixelRect &rc,
+                                        ButtonState state) const noexcept
+{
+  frame_renderer.DrawButton(canvas, rc, state);
+
+  const PixelRect inner = frame_renderer.GetDrawingRect(rc, state);
+
+  canvas.SetBackgroundTransparent();
+
+  const ButtonLook &look = frame_renderer.GetLook();
+  switch (state) {
+  case ButtonState::DISABLED:
+    canvas.SetTextColor(look.disabled.color);
+    break;
+  case ButtonState::FOCUSED:
+  case ButtonState::PRESSED:
+    canvas.SetTextColor(look.focused.foreground_color);
+    break;
+  case ButtonState::SELECTED:
+    canvas.SetTextColor(look.selected.foreground_color);
+    break;
+  case ButtonState::ENABLED:
+    canvas.SetTextColor(look.standard.foreground_color);
+    break;
+  }
+
+  const unsigned h = inner.GetHeight();
+  const int main_h = static_cast<int>(main_font.GetHeight());
+  const int sub_h  = static_cast<int>(sub_font.GetHeight());
+  const int total  = main_h + sub_h + static_cast<int>(Layout::GetTextPadding());
+
+  /* vertically center the two lines as a block */
+  const int block_top = inner.top + (static_cast<int>(h) - total) / 2;
+
+  PixelRect upper = inner;
+  upper.top    = std::max(inner.top, block_top);
+  upper.bottom = upper.top + main_h;
+
+  PixelRect lower = inner;
+  lower.top    = upper.bottom + static_cast<int>(Layout::GetTextPadding());
+  lower.bottom = std::min(inner.bottom, lower.top + sub_h);
+
+  /* active frequency — main (bold) font, centered */
+  canvas.Select(main_font);
+  TextRenderer tr;
+  tr.SetCenter();
+  tr.Draw(canvas, upper, active_text.c_str());
+
+  /* standby frequency — small font, centered */
+  canvas.Select(sub_font);
+  TextRenderer tr2;
+  tr2.SetCenter();
+  tr2.Draw(canvas, lower, standby_text.c_str());
+}
+
+// ---------------------------------------------------------------------------
 
 static constexpr std::array<PixelRect, RadioEditWidget::NUM_BUTTONS>
 LayoutButtonsImpl(const PixelRect &rc) noexcept
@@ -59,8 +150,12 @@ RadioEditWidget::Prepare(ContainerWindow &parent,
   style.TabStop();
   style.Hide();
 
+  auto renderer = std::make_unique<DualFrequencyButtonRenderer>(
+    button_look, *button_look.font, look.small_font);
+  freq_renderer = renderer.get();
+
   buttons.reset(new std::array<Button, NUM_BUTTONS>{
-    Button(parent, button_look, "---\n---", rects[0], style,
+    Button(parent, rects[0], style, std::move(renderer),
            [this](){ OnEditFrequency(); }),
     Button(parent, button_look, _("List"), rects[1], style,
            [this](){ OnOpenList(); }),
@@ -73,6 +168,9 @@ void
 RadioEditWidget::UpdateFrequencyField(RadioFrequency active,
                                       RadioFrequency standby) noexcept
 {
+  if (!freq_renderer || !buttons)
+    return;
+
   char active_buf[16], standby_buf[16];
 
   if (active.IsDefined())
@@ -85,10 +183,9 @@ RadioEditWidget::UpdateFrequencyField(RadioFrequency active,
   else
     strcpy(standby_buf, "---");
 
-  freq_text.Format("%s\n%s", active_buf, standby_buf);
-
-  if (buttons)
-    (*buttons)[0].SetCaption(freq_text.c_str());
+  freq_renderer->active_text  = active_buf;
+  freq_renderer->standby_text = standby_buf;
+  (*buttons)[0].Invalidate();
 }
 
 void

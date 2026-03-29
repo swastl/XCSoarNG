@@ -6,12 +6,12 @@
 #include "Widget.hpp"
 #include "Form/Button.hpp"
 #include "RadioFrequency.hpp"
-#include "util/StaticString.hxx"
 
 #include <array>
 #include <memory>
 
 struct DialogLook;
+class DualFrequencyButtonRenderer;
 
 /**
  * A widget that shows three buttons for a radio frequency:
@@ -26,7 +26,8 @@ private:
 
   std::unique_ptr<std::array<Button, NUM_BUTTONS>> buttons;
 
-  StaticString<32> freq_text;
+  /** Non-owning pointer to the custom renderer for button 0 (owned by the Button). */
+  DualFrequencyButtonRenderer *freq_renderer = nullptr;
 
 public:
   explicit RadioEditWidget(const DialogLook &_look) noexcept
