@@ -28,14 +28,15 @@ protected:
   void OnEditFrequency() noexcept override;
   void OnOpenList() noexcept override;
   void OnSwapFrequency() noexcept override;
-  RadioFrequency GetCurrentFrequency() const noexcept override;
 
   /* virtual methods from BlackboardListener */
   void OnCalculatedUpdate(const MoreData &basic,
                           const DerivedInfo &calculated) override;
 
 private:
-  void ApplyFrequency(RadioFrequency freq) noexcept;
+  RadioFrequency GetFrequency(bool for_active) const noexcept;
+  void RefreshDisplay() noexcept;
+
   const bool set_active_freq;
 };
 
@@ -54,7 +55,7 @@ LoadStandbyRadioFrequencyEditPanel([[maybe_unused]] unsigned id)
 void RadioEdit::Show(const PixelRect &rc) noexcept
 {
   RadioEditWidget::Show(rc);
-  UpdateFrequencyField(GetCurrentFrequency());
+  RefreshDisplay();
   CommonInterface::GetLiveBlackboard().AddListener(*this);
 }
 
@@ -69,21 +70,13 @@ void RadioEdit::OnCalculatedUpdate([[maybe_unused]] const MoreData &basic,
 {
   /* OnCalculatedUpdate fires after ApplyExternalSettings has run, so
      ComputerSettings already reflects any frequency the device reported */
-  UpdateFrequencyField(GetCurrentFrequency());
+  RefreshDisplay();
 }
 
-void RadioEdit::ApplyFrequency(RadioFrequency freq) noexcept
-{
-  if (set_active_freq)
-    ActionInterface::SetActiveFrequency(freq, "");
-  else
-    ActionInterface::SetStandbyFrequency(freq, "");
-}
-
-RadioFrequency RadioEdit::GetCurrentFrequency() const noexcept
+RadioFrequency RadioEdit::GetFrequency(bool for_active) const noexcept
 {
   const ComputerSettings &settings = CommonInterface::GetComputerSettings();
-  const RadioFrequency stored = set_active_freq
+  const RadioFrequency stored = for_active
     ? settings.radio.active_frequency
     : settings.radio.standby_frequency;
 
@@ -94,7 +87,7 @@ RadioFrequency RadioEdit::GetCurrentFrequency() const noexcept
      directly from NMEAInfo, in case ComputerSettings has not yet been
      populated (e.g. before the computer thread runs ApplyExternalSettings) */
   const MoreData &basic = CommonInterface::Basic();
-  if (set_active_freq) {
+  if (for_active) {
     if (basic.settings.has_active_frequency.IsValid())
       return basic.settings.active_frequency;
   } else {
@@ -105,15 +98,28 @@ RadioFrequency RadioEdit::GetCurrentFrequency() const noexcept
   return RadioFrequency::Null();
 }
 
+void RadioEdit::RefreshDisplay() noexcept
+{
+  UpdateFrequencyField(GetFrequency(true), GetFrequency(false));
+}
+
 void RadioEdit::OnEditFrequency() noexcept
 {
-  RadioFrequency freq = GetCurrentFrequency();
-  if (!RadioFrequencyEntryDialog(_("Frequency"), freq, false))
+  /* Pre-fill with the current frequency for the panel type */
+  RadioFrequency freq = GetFrequency(set_active_freq);
+  bool set_active = set_active_freq;
+
+  if (!RadioFrequencyEntryDialogWithTarget(_("Frequency"), freq, set_active))
     return;
   if (!freq.IsDefined())
     return;
-  ApplyFrequency(freq);
-  UpdateFrequencyField(freq);
+
+  if (set_active)
+    ActionInterface::SetActiveFrequency(freq, "");
+  else
+    ActionInterface::SetStandbyFrequency(freq, "");
+
+  RefreshDisplay();
 }
 
 void RadioEdit::OnOpenList() noexcept
@@ -123,7 +129,7 @@ void RadioEdit::OnOpenList() noexcept
     mode = UserFrequencyListWidget::DialogMode::SELECT_STANDBY;
   dlgUserFrequencyListWidgetShowModal(mode);
 
-  UpdateFrequencyField(GetCurrentFrequency());
+  RefreshDisplay();
 }
 
 void RadioEdit::OnSwapFrequency() noexcept

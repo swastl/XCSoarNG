@@ -26,13 +26,14 @@ private:
 
   std::unique_ptr<std::array<Button, NUM_BUTTONS>> buttons;
 
-  StaticString<16> freq_text;
+  StaticString<32> freq_text;
 
 public:
   explicit RadioEditWidget(const DialogLook &_look) noexcept
     : look(_look) {}
 
-  void UpdateFrequencyField(RadioFrequency freq) noexcept;
+  void UpdateFrequencyField(RadioFrequency active,
+                            RadioFrequency standby) noexcept;
 
   /* virtual methods from Widget */
   PixelSize GetMinimumSize() const noexcept override;
@@ -48,7 +49,6 @@ protected:
   virtual void OnEditFrequency() noexcept = 0;
   virtual void OnOpenList() noexcept = 0;
   virtual void OnSwapFrequency() noexcept = 0;
-  virtual RadioFrequency GetCurrentFrequency() const noexcept = 0;
 
 private:
   static std::array<PixelRect, NUM_BUTTONS>

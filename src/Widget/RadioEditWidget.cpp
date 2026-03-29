@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <stdio.h>
+#include <string.h>
 
 static constexpr std::array<PixelRect, RadioEditWidget::NUM_BUTTONS>
 LayoutButtonsImpl(const PixelRect &rc) noexcept
@@ -59,24 +60,32 @@ RadioEditWidget::Prepare(ContainerWindow &parent,
   style.Hide();
 
   buttons.reset(new std::array<Button, NUM_BUTTONS>{
-    Button(parent, button_look, "---", rects[0], style,
+    Button(parent, button_look, "---\n---", rects[0], style,
            [this](){ OnEditFrequency(); }),
     Button(parent, button_look, _("List"), rects[1], style,
            [this](){ OnOpenList(); }),
     Button(parent, button_look, _("Swap"), rects[2], style,
            [this](){ OnSwapFrequency(); }),
   });
-
-  UpdateFrequencyField(GetCurrentFrequency());
 }
 
 void
-RadioEditWidget::UpdateFrequencyField(RadioFrequency freq) noexcept
+RadioEditWidget::UpdateFrequencyField(RadioFrequency active,
+                                      RadioFrequency standby) noexcept
 {
-  if (freq.IsDefined())
-    freq.Format(freq_text.buffer(), freq_text.capacity());
+  char active_buf[16], standby_buf[16];
+
+  if (active.IsDefined())
+    active.Format(active_buf, sizeof(active_buf));
   else
-    freq_text = "---";
+    strcpy(active_buf, "---");
+
+  if (standby.IsDefined())
+    standby.Format(standby_buf, sizeof(standby_buf));
+  else
+    strcpy(standby_buf, "---");
+
+  freq_text.Format("%s\n%s", active_buf, standby_buf);
 
   if (buttons)
     (*buttons)[0].SetCaption(freq_text.c_str());
