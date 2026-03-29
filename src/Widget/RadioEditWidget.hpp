@@ -46,6 +46,7 @@ public:
 
 protected:
   virtual void OnFrequencyChanged(RadioFrequency new_freq) noexcept = 0;
+  virtual void OnEditFrequency() noexcept = 0;
   virtual void OnOpenList() noexcept = 0;
   virtual void OnSwapFrequency() noexcept = 0;
   virtual RadioFrequency GetCurrentFrequency() const noexcept = 0;

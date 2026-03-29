@@ -8,6 +8,8 @@
 #include "ActionInterface.hpp"
 #include "UIGlobals.hpp"
 #include "Dialogs/Frequency/dlgUserFrequencyList.hpp"
+#include "Dialogs/RadioFrequencyEntry.hpp"
+#include "Language/Language.hpp"
 
 class RadioEdit final : public RadioEditWidget
 {
@@ -18,6 +20,7 @@ public:
 protected:
   /* virtual methods from OffsetButtonsWidget */
   void OnFrequencyChanged(RadioFrequency new_freq) noexcept override;
+  void OnEditFrequency() noexcept override;
   void OnOpenList() noexcept override;
   void OnSwapFrequency() noexcept override;
   RadioFrequency GetCurrentFrequency() const noexcept override;
@@ -54,6 +57,15 @@ RadioFrequency RadioEdit::GetCurrentFrequency() const noexcept
     return settings.radio.active_frequency;
   else
     return settings.radio.standby_frequency;
+}
+
+void RadioEdit::OnEditFrequency() noexcept
+{
+  RadioFrequency freq = GetCurrentFrequency();
+  if (!RadioFrequencyEntryDialog(_("Frequency"), freq, false))
+    return;
+  OnFrequencyChanged(freq);
+  UpdateFrequencyField(freq);
 }
 
 void RadioEdit::OnOpenList() noexcept
