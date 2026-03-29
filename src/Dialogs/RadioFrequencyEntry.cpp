@@ -47,8 +47,11 @@ RadioFrequencyEntryDialog(const char *caption,
   if (!result)
     return false;
 
-  /* only update value if not already set by the Clear button */
-  if (value.IsDefined() || nullable) {
+  /* only update value if not already set by the Clear button;
+     in non-nullable mode always read from the digit entry (even when the
+     initial value was undefined), but in nullable mode skip the read when
+     Clear was pressed (which sets value to Null before returning) */
+  if (value.IsDefined() || !nullable) {
     auto &digit_entry = (DigitEntry &)dialog.GetWidget().GetWindow();
     RadioFrequency new_value = digit_entry.GetRadioFrequency();
     if (new_value.IsDefined())

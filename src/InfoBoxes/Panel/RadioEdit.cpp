@@ -110,6 +110,8 @@ void RadioEdit::OnEditFrequency() noexcept
   RadioFrequency freq = GetCurrentFrequency();
   if (!RadioFrequencyEntryDialog(_("Frequency"), freq, false))
     return;
+  if (!freq.IsDefined())
+    return;
   ApplyFrequency(freq);
   UpdateFrequencyField(freq);
 }
