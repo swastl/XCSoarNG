@@ -16,6 +16,7 @@
 #include "Language/Language.hpp"
 
 #include <optional>
+#include <utility>
 
 class RadioEdit final : public RadioEditWidget, NullBlackboardListener
 {
@@ -118,6 +119,16 @@ std::optional<bool> RadioEdit::AskActiveOrStandby() noexcept
 {
   const DialogLook &look = UIGlobals::GetDialogLook();
 
+  /* EmptyWidget with a non-zero min/max size so AutoSize() can compute
+     a valid dialog rect (a zero-size widget leads to rc.left >= rc.right) */
+  struct EmptyWidget final : NullWidget {
+    PixelSize GetMinimumSize() const noexcept override { return {1, 1}; }
+    /* Unrestricted width: let AutoSize() use the full parent width */
+    PixelSize GetMaximumSize() const noexcept override { return {32767u, 1}; }
+    void Show(const PixelRect &) noexcept override {}
+    void Hide() noexcept override {}
+  } empty_widget;
+
   WidgetDialog dialog(WidgetDialog::Auto{}, UIGlobals::GetMainWindow(),
                       look, _("Frequency"));
 
@@ -132,11 +143,6 @@ std::optional<bool> RadioEdit::AskActiveOrStandby() noexcept
   });
   dialog.AddButton(_("Cancel"), mrCancel);
 
-  /* NullWidget is abstract (no Show/Hide); use a concrete no-op subclass */
-  struct EmptyWidget final : NullWidget {
-    void Show(const PixelRect &) noexcept override {}
-    void Hide() noexcept override {}
-  } empty_widget;
   dialog.FinishPreliminary(&empty_widget);
 
   if (dialog.ShowModal() != mrOK)
@@ -180,6 +186,15 @@ void RadioEdit::OnOpenList() noexcept
 
 void RadioEdit::OnSwapFrequency() noexcept
 {
+  /* ExchangeRadioFrequencies only sends a command to the external device
+     but never updates ComputerSettings.  Swap the in-memory values directly
+     so the display refreshes immediately (even when no device is connected). */
+  auto &radio = CommonInterface::SetComputerSettings().radio;
+  std::swap(radio.active_frequency, radio.standby_frequency);
+  std::swap(radio.active_name,      radio.standby_name);
+
+  /* Also tell any connected device to swap */
   ActionInterface::ExchangeRadioFrequencies(true);
+
   RefreshDisplay();
 }
