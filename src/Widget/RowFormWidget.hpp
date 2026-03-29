@@ -369,7 +369,7 @@ public:
                         double value,
                         DataFieldListener *listener=nullptr) noexcept;
 
-  WndProperty *AddFrequency(const TCHAR *label, const TCHAR *help,
+  WndProperty *AddFrequency(const char *label, const char *help,
                         RadioFrequency value,
                         DataFieldListener *listener) noexcept;
 

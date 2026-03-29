@@ -141,10 +141,7 @@ RowFormWidget::AddFloat(const char *label, const char *help,
 }
 
 WndProperty *
-<<<<<<< ours
-RowFormWidget::AddAngle(const char *label, const char *help,
-=======
-RowFormWidget::AddFrequency(const TCHAR *label, const TCHAR *help,
+RowFormWidget::AddFrequency(const char *label, const char *help,
                         RadioFrequency value,
                         DataFieldListener *listener) noexcept
 {
@@ -155,8 +152,7 @@ RowFormWidget::AddFrequency(const TCHAR *label, const TCHAR *help,
 }
 
 WndProperty *
-RowFormWidget::AddAngle(const TCHAR *label, const TCHAR *help,
->>>>>>> theirs
+RowFormWidget::AddAngle(const char *label, const char *help,
                         Angle value, unsigned step, bool fine,
                         DataFieldListener *listener) noexcept
 {

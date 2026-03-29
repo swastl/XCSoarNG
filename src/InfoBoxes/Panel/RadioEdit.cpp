@@ -12,9 +12,6 @@
 class RadioEdit final : public RadioEditWidget
 {
 public:
-  RadioOffsetButtons(bool active_freq) noexcept
-    :OffsetButtonsWidget(UIGlobals::GetDialogLook().button, "%.0f kHz", 5, 1000),set_active_freq(active_freq) {}
-
   explicit RadioEdit(bool active_freq) noexcept
       : RadioEditWidget(UIGlobals::GetDialogLook()), set_active_freq(active_freq) {}
 
@@ -44,9 +41,9 @@ LoadStandbyRadioFrequencyEditPanel([[maybe_unused]] unsigned id)
 void RadioEdit::OnFrequencyChanged(RadioFrequency new_freq) noexcept
 {
   if (set_active_freq)
-    ActionInterface::SetActiveFrequency(new_freq, _T(""));
+    ActionInterface::SetActiveFrequency(new_freq, "");
   else
-    ActionInterface::SetStandbyFrequency(new_freq, _T(""));
+    ActionInterface::SetStandbyFrequency(new_freq, "");
 }
 
 RadioFrequency RadioEdit::GetCurrentFrequency() const noexcept

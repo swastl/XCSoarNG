@@ -307,7 +307,7 @@ InputEvents::eventChecklist([[maybe_unused]] const char *misc)
 
 // User Frequencies List
 void
-InputEvents::eventFrequencies([[maybe_unused]] const TCHAR *misc)
+InputEvents::eventFrequencies([[maybe_unused]] const char *misc)
 {
   dlgUserFrequencyListWidgetShowModal(UserFrequencyListWidget::DialogMode::BROWSE);
 }

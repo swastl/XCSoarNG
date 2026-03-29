@@ -1078,12 +1078,12 @@ DigitEntry::OnPaint(Canvas &canvas) noexcept
 
     case Column::Type::RADIO_FREQURENCY_MHZ_OFFSET:
       assert(c.value <= 19);
-      _stprintf(buffer, _T("%03u"), c.value + 118);
+      sprintf(buffer, "%03u", c.value + 118);
       break;
 
     case Column::Type::RADIO_FREQURENCY_KHZ_SCALED:
       assert(c.value <= 19);
-      _stprintf(buffer, _T("%02u"), c.value * 5);
+      sprintf(buffer, "%02u", c.value * 5);
       break;
 
     case Column::Type::SIGN:
