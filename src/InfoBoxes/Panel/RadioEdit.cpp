@@ -120,14 +120,15 @@ std::optional<bool> RadioEdit::AskActiveOrStandby() noexcept
   const DialogLook &look = UIGlobals::GetDialogLook();
 
   /* EmptyWidget with a non-zero min/max size so AutoSize() can compute
-     a valid dialog rect (a zero-size widget leads to rc.left >= rc.right) */
+     a valid dialog rect (a zero-size widget leads to rc.left >= rc.right).
+     Heap-allocated so that ManagedWidget::Clear() can safely delete it. */
   struct EmptyWidget final : NullWidget {
     PixelSize GetMinimumSize() const noexcept override { return {1, 1}; }
     /* Unrestricted width: let AutoSize() use the full parent width */
     PixelSize GetMaximumSize() const noexcept override { return {32767, 1}; }
     void Show(const PixelRect &) noexcept override {}
     void Hide() noexcept override {}
-  } empty_widget;
+  };
 
   WidgetDialog dialog(WidgetDialog::Auto{}, UIGlobals::GetMainWindow(),
                       look, _("Frequency"));
@@ -143,7 +144,7 @@ std::optional<bool> RadioEdit::AskActiveOrStandby() noexcept
   });
   dialog.AddButton(_("Cancel"), mrCancel);
 
-  dialog.FinishPreliminary(&empty_widget);
+  dialog.FinishPreliminary(std::make_unique<EmptyWidget>());
 
   if (dialog.ShowModal() != mrOK)
     return {};
