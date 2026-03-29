@@ -17,6 +17,11 @@
 #include "io/FileLineReader.hpp"
 #include "util/StaticString.hxx"
 #include "util/StringSplit.hxx"
+#include "LogFile.hpp"
+
+#ifdef ANDROID
+#include <android/log.h>
+#endif
 
 #include <vector>
 #include <string>
@@ -54,6 +59,14 @@ LoadFromFile() noexcept
   } catch (...) {
     /* ignore file read errors */
   }
+
+  LogDebug("UserFrequency loaded {} frequencies from [{}]",
+           g_user_frequencies.size(), path.c_str());
+#ifdef ANDROID
+  __android_log_print(ANDROID_LOG_DEBUG, "XCSoarFreq",
+                      "Loaded %zu frequencies from [%s]",
+                      g_user_frequencies.size(), path.c_str());
+#endif
 }
 
 static void
@@ -79,6 +92,25 @@ SaveToFile() noexcept
   } catch (...) {
     /* ignore file write errors */
   }
+}
+
+static void
+LogFrequencyChange(const char *action, const UserFrequency &entry) noexcept
+{
+  char freq_buf[16];
+  if (entry.frequency.IsDefined())
+    entry.frequency.Format(freq_buf, sizeof(freq_buf));
+  else
+    freq_buf[0] = '\0';
+
+  const auto path = LocalPath("user.freq");
+  LogDebug("UserFrequency {}: '{}' {} [{}]",
+           action, entry.name.c_str(), freq_buf, path.c_str());
+#ifdef ANDROID
+  __android_log_print(ANDROID_LOG_DEBUG, "XCSoarFreq",
+                      "%s: '%s' %s [%s]",
+                      action, entry.name.c_str(), freq_buf, path.c_str());
+#endif
 }
 
 class UserFrequencyListWidgetImpl final : public ListWidget {
@@ -128,10 +160,12 @@ UserFrequencyListWidgetImpl::CreateButtons(WidgetDialog &dialog) noexcept
       entry.name = "";
       entry.frequency = RadioFrequency::Null();
       if (dlgFrequencyEditShowModal(entry)) {
+        LogFrequencyChange("added", entry);
         g_user_frequencies.push_back(entry);
         SaveToFile();
         GetList().SetLength(g_user_frequencies.size());
         GetList().SetCursorIndex(g_user_frequencies.size() - 1);
+        GetList().Invalidate();
         UpdateButtons();
       }
     });
@@ -142,6 +176,7 @@ UserFrequencyListWidgetImpl::CreateButtons(WidgetDialog &dialog) noexcept
         return;
       UserFrequency entry = g_user_frequencies[index];
       if (dlgFrequencyEditShowModal(entry)) {
+        LogFrequencyChange("edited", entry);
         g_user_frequencies[index] = entry;
         SaveToFile();
         GetList().Invalidate();
@@ -152,6 +187,7 @@ UserFrequencyListWidgetImpl::CreateButtons(WidgetDialog &dialog) noexcept
       const unsigned index = GetList().GetCursorIndex();
       if (index >= g_user_frequencies.size())
         return;
+      LogFrequencyChange("deleted", g_user_frequencies[index]);
       g_user_frequencies.erase(g_user_frequencies.begin() + index);
       SaveToFile();
       GetList().SetLength(g_user_frequencies.size());

@@ -48,7 +48,7 @@ RadioFrequencyEntryDialog(const char *caption,
     return false;
 
   /* only update value if not already set by the Clear button */
-  if (value.IsDefined() || nullable) {
+  if (!nullable || value.IsDefined()) {
     auto &digit_entry = (DigitEntry &)dialog.GetWidget().GetWindow();
     RadioFrequency new_value = digit_entry.GetRadioFrequency();
     if (new_value.IsDefined())
