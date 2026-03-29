@@ -7,15 +7,21 @@
 #include "Formatter/UserUnits.hpp"
 #include "ActionInterface.hpp"
 #include "UIGlobals.hpp"
+#include "Interface.hpp"
+#include "Blackboard/BlackboardListener.hpp"
 #include "Dialogs/Frequency/dlgUserFrequencyList.hpp"
 #include "Dialogs/RadioFrequencyEntry.hpp"
 #include "Language/Language.hpp"
 
-class RadioEdit final : public RadioEditWidget
+class RadioEdit final : public RadioEditWidget, NullBlackboardListener
 {
 public:
   explicit RadioEdit(bool active_freq) noexcept
       : RadioEditWidget(UIGlobals::GetDialogLook()), set_active_freq(active_freq) {}
+
+  /* overrides from Widget */
+  void Show(const PixelRect &rc) noexcept override;
+  void Hide() noexcept override;
 
 protected:
   /* virtual methods from RadioEditWidget */
@@ -23,6 +29,9 @@ protected:
   void OnOpenList() noexcept override;
   void OnSwapFrequency() noexcept override;
   RadioFrequency GetCurrentFrequency() const noexcept override;
+
+  /* virtual methods from BlackboardListener */
+  void OnGPSUpdate(const MoreData &basic) override;
 
 private:
   void ApplyFrequency(RadioFrequency freq) noexcept;
@@ -39,6 +48,26 @@ std::unique_ptr<Widget>
 LoadStandbyRadioFrequencyEditPanel([[maybe_unused]] unsigned id)
 {
   return std::make_unique<RadioEdit>(false);
+}
+
+void RadioEdit::Show(const PixelRect &rc) noexcept
+{
+  RadioEditWidget::Show(rc);
+  UpdateFrequencyField(GetCurrentFrequency());
+  CommonInterface::GetLiveBlackboard().AddListener(*this);
+}
+
+void RadioEdit::Hide() noexcept
+{
+  CommonInterface::GetLiveBlackboard().RemoveListener(*this);
+  RadioEditWidget::Hide();
+}
+
+void RadioEdit::OnGPSUpdate([[maybe_unused]] const MoreData &basic)
+{
+  /* GPS update fires each device data cycle - refresh the frequency display
+     so it picks up any changes reported by the radio hardware */
+  UpdateFrequencyField(GetCurrentFrequency());
 }
 
 void RadioEdit::ApplyFrequency(RadioFrequency freq) noexcept
