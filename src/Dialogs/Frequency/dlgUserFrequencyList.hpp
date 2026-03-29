@@ -9,6 +9,8 @@ public:
     BROWSE,
     SELECT_ACTIVE,
     SELECT_STANDBY,
+    /** Show both "Active" and "Standby" action buttons. */
+    SELECT_BOTH,
   };
 };
 

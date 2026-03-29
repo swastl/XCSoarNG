@@ -11,11 +11,8 @@
 #include "Blackboard/BlackboardListener.hpp"
 #include "Dialogs/Frequency/dlgUserFrequencyList.hpp"
 #include "Dialogs/RadioFrequencyEntry.hpp"
-#include "Dialogs/WidgetDialog.hpp"
-#include "Form/Form.hpp"
 #include "Language/Language.hpp"
 
-#include <optional>
 #include <utility>
 
 class RadioEdit final : public RadioEditWidget, NullBlackboardListener
@@ -41,13 +38,6 @@ protected:
 private:
   RadioFrequency GetFrequency(bool for_active) const noexcept;
   void RefreshDisplay() noexcept;
-
-  /**
-   * Show a dialog asking the user whether to set the frequency as
-   * active or standby.  Returns true for active, false for standby,
-   * or unset if the user cancelled.
-   */
-  static std::optional<bool> AskActiveOrStandby() noexcept;
 
   const bool set_active_freq;
 };
@@ -115,41 +105,10 @@ void RadioEdit::RefreshDisplay() noexcept
   UpdateFrequencyField(GetFrequency(true), GetFrequency(false));
 }
 
-std::optional<bool> RadioEdit::AskActiveOrStandby() noexcept
+void RadioEdit::OnOpenList() noexcept
 {
-  const DialogLook &look = UIGlobals::GetDialogLook();
-
-  /* EmptyWidget with a non-zero min/max size so AutoSize() can compute
-     a valid dialog rect (a zero-size widget leads to rc.left >= rc.right).
-     Heap-allocated so that ManagedWidget::Clear() can safely delete it. */
-  struct EmptyWidget final : NullWidget {
-    PixelSize GetMinimumSize() const noexcept override { return {1, 1}; }
-    /* Unrestricted width: let AutoSize() use the full parent width */
-    PixelSize GetMaximumSize() const noexcept override { return {32767, 1}; }
-    void Show(const PixelRect &) noexcept override {}
-    void Hide() noexcept override {}
-  };
-
-  WidgetDialog dialog(WidgetDialog::Auto{}, UIGlobals::GetMainWindow(),
-                      look, _("Frequency"));
-
-  bool chosen_active = true;
-  dialog.AddButton(_("Active"), [&dialog, &chosen_active](){
-    chosen_active = true;
-    dialog.SetModalResult(mrOK);
-  });
-  dialog.AddButton(_("Standby"), [&dialog, &chosen_active](){
-    chosen_active = false;
-    dialog.SetModalResult(mrOK);
-  });
-  dialog.AddButton(_("Cancel"), mrCancel);
-
-  dialog.FinishPreliminary(std::make_unique<EmptyWidget>());
-
-  if (dialog.ShowModal() != mrOK)
-    return {};
-
-  return chosen_active;
+  dlgUserFrequencyListWidgetShowModal(UserFrequencyListWidget::DialogMode::SELECT_BOTH);
+  RefreshDisplay();
 }
 
 void RadioEdit::OnEditFrequency() noexcept
@@ -167,20 +126,6 @@ void RadioEdit::OnEditFrequency() noexcept
     ActionInterface::SetActiveFrequency(freq, "");
   else
     ActionInterface::SetStandbyFrequency(freq, "");
-
-  RefreshDisplay();
-}
-
-void RadioEdit::OnOpenList() noexcept
-{
-  const auto target = AskActiveOrStandby();
-  if (!target.has_value())
-    return;
-
-  const auto mode = *target
-    ? UserFrequencyListWidget::DialogMode::SELECT_ACTIVE
-    : UserFrequencyListWidget::DialogMode::SELECT_STANDBY;
-  dlgUserFrequencyListWidgetShowModal(mode);
 
   RefreshDisplay();
 }
