@@ -165,6 +165,13 @@ RadioEditWidget::Prepare(ContainerWindow &parent,
 }
 
 void
+RadioEditWidget::SetSwapEnabled(bool enabled) noexcept
+{
+  if (buttons)
+    (*buttons)[SWAP_BUTTON_INDEX].SetEnabled(enabled);
+}
+
+void
 RadioEditWidget::UpdateFrequencyField(RadioFrequency active,
                                       RadioFrequency standby) noexcept
 {

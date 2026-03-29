@@ -20,6 +20,7 @@ class DualFrequencyButtonRenderer;
 class RadioEditWidget : public NullWidget {
 public:
   static constexpr unsigned NUM_BUTTONS = 3;
+  static constexpr unsigned SWAP_BUTTON_INDEX = 2;
 
 private:
   const DialogLook &look;
@@ -35,6 +36,12 @@ public:
 
   void UpdateFrequencyField(RadioFrequency active,
                             RadioFrequency standby) noexcept;
+
+  /**
+   * Enable or disable the Swap button.  Call with false when no
+   * radio device is connected.
+   */
+  void SetSwapEnabled(bool enabled) noexcept;
 
   /* virtual methods from Widget */
   PixelSize GetMinimumSize() const noexcept override;

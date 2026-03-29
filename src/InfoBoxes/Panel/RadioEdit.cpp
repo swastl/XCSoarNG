@@ -103,6 +103,11 @@ RadioFrequency RadioEdit::GetFrequency(bool for_active) const noexcept
 void RadioEdit::RefreshDisplay() noexcept
 {
   UpdateFrequencyField(GetFrequency(true), GetFrequency(false));
+
+  const MoreData &basic = CommonInterface::Basic();
+  const bool radio_connected = basic.settings.has_active_frequency ||
+                                basic.settings.has_standby_frequency;
+  SetSwapEnabled(radio_connected);
 }
 
 void RadioEdit::OnOpenList() noexcept
