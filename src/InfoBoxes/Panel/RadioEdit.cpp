@@ -124,7 +124,7 @@ std::optional<bool> RadioEdit::AskActiveOrStandby() noexcept
   struct EmptyWidget final : NullWidget {
     PixelSize GetMinimumSize() const noexcept override { return {1, 1}; }
     /* Unrestricted width: let AutoSize() use the full parent width */
-    PixelSize GetMaximumSize() const noexcept override { return {32767u, 1}; }
+    PixelSize GetMaximumSize() const noexcept override { return {32767, 1}; }
     void Show(const PixelRect &) noexcept override {}
     void Hide() noexcept override {}
   } empty_widget;
