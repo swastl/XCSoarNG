@@ -276,6 +276,7 @@ sqlite3 = AutotoolsProject(
 
 proj = CmakeProject(
     (
+        "https://github.com/OSGeo/PROJ/releases/download/9.4.0/proj-9.4.0.tar.gz",
         "http://download.osgeo.org/proj/proj-9.4.0.tar.gz",
         # HTTPS mirror (same infra, different scheme)
         "https://download.osgeo.org/proj/proj-9.4.0.tar.gz",
