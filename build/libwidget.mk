@@ -28,6 +28,7 @@ WIDGET_SOURCES = \
 	$(SRC)/Widget/ArrowPagerWidget.cpp \
 	$(SRC)/Widget/OffsetButtonsWidget.cpp \
 	$(SRC)/Widget/CursorBarWidget.cpp \
+	$(SRC)/Widget/RadioEditWidget.cpp \
 	$(SRC)/Widget/ButtonPanelWidget.cpp \
 	$(SRC)/Widget/ButtonWidget.cpp \
 	$(SRC)/Widget/DrawWidget.cpp \

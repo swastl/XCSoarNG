@@ -1,0 +1,569 @@
+diff --git a/Data/Input/default.xci b/Data/Input/default.xci
+index 606bd54284..e30f082c0e 100644
+--- a/Data/Input/default.xci
++++ b/Data/Input/default.xci
+@@ -908,6 +908,14 @@ event=RepeatStatusMessage
+ label=Message Repeat
+ location=7
+ 
++mode=Info3
++type=key
++data=9
++event=Frequencies
++event=Mode default
++label=Frequencies
++location=8
++
+ # -------------
+ # mode=Menu
+ # -------------
+@@ -1296,3 +1304,22 @@ mode=default
+ type=gesture
+ data=ULDR
+ event=QuickMenu
++
++# Radio frequencies
++
++mode=Info3
++type=key
++data=9
++event=Frequencies
++event=Mode default
++label=Frequencies
++location=8
++
++
++mode=RemoteStick
++type=key
++data=0
++event=Frequencies
++label=Frequencies
++location=35
++
+diff --git a/build/datafield.mk b/build/datafield.mk
+index 41f84869cd..89052c2857 100644
+--- a/build/datafield.mk
++++ b/build/datafield.mk
+@@ -11,6 +11,7 @@ DATA_FIELD_SOURCES = \
+ 	$(DATA_FIELD_SRC_DIR)/MultiFile.cpp \
+ 	$(DATA_FIELD_SRC_DIR)/Number.cpp \
+ 	$(DATA_FIELD_SRC_DIR)/Float.cpp \
++	$(DATA_FIELD_SRC_DIR)/Frequency.cpp \
+ 	$(DATA_FIELD_SRC_DIR)/Angle.cpp \
+ 	$(DATA_FIELD_SRC_DIR)/GeoPoint.cpp \
+ 	$(DATA_FIELD_SRC_DIR)/RoughTime.cpp \
+diff --git a/build/libwidget.mk b/build/libwidget.mk
+index 980437bf4d..1e90ff9d43 100644
+--- a/build/libwidget.mk
++++ b/build/libwidget.mk
+@@ -25,6 +25,7 @@ WIDGET_SOURCES = \
+ 	$(SRC)/Widget/PagerWidget.cpp \
+ 	$(SRC)/Widget/ArrowPagerWidget.cpp \
+ 	$(SRC)/Widget/OffsetButtonsWidget.cpp \
++	$(SRC)/Widget/RadioEditWidget.cpp \
+ 	$(SRC)/Widget/ButtonPanelWidget.cpp \
+ 	$(SRC)/Widget/ButtonWidget.cpp \
+ 	$(SRC)/Widget/DrawWidget.cpp \
+diff --git a/build/main.mk b/build/main.mk
+index 929e814092..e5f713e8ad 100644
+--- a/build/main.mk
++++ b/build/main.mk
+@@ -15,6 +15,7 @@ DIALOG_SOURCES = \
+ 	$(SRC)/Dialogs/JobDialog.cpp \
+ 	$(SRC)/Dialogs/WidgetDialog.cpp \
+ 	$(SRC)/Dialogs/FileManager.cpp \
++    	$(SRC)/Dialogs/RadioFrequencyEntry.cpp \
+ 	$(SRC)/Dialogs/Device/PortDataField.cpp \
+ 	$(SRC)/Dialogs/Device/PortPicker.cpp \
+ 	$(SRC)/Dialogs/Device/DeviceEditWidget.cpp \
+@@ -38,6 +39,7 @@ DIALOG_SOURCES = \
+ 	$(SRC)/Dialogs/Device/Vega/SwitchesDialog.cpp \
+ 	$(SRC)/Dialogs/Device/FLARM/ConfigWidget.cpp \
+ 	$(SRC)/Dialogs/Device/FLARM/RangeConfigWidget.cpp \
++	$(SRC)/Dialogs/Frequency/dlgFrequencyEdit.cpp \
+ 	$(SRC)/Dialogs/MapItemListDialog.cpp \
+ 	$(SRC)/Dialogs/MapItemListSettingsDialog.cpp \
+ 	$(SRC)/Dialogs/MapItemListSettingsPanel.cpp \
+@@ -59,6 +61,8 @@ DIALOG_SOURCES = \
+ 	$(SRC)/Dialogs/Traffic/TeamCodeDialog.cpp \
+ 	$(SRC)/Dialogs/dlgAnalysis.cpp \
+ 	$(SRC)/Dialogs/dlgChecklist.cpp \
++	$(SRC)/Dialogs/Frequency/dlgUserFrequencyList.cpp \
++	$(SRC)/Dialogs/Frequency/dlgFrequencyEdit.cpp \
+ 	$(SRC)/Dialogs/ProfileListDialog.cpp \
+ 	$(SRC)/Dialogs/Plane/PlaneListDialog.cpp \
+ 	$(SRC)/Dialogs/Plane/PlaneDetailsDialog.cpp \
+diff --git a/build/python/build/libs.py b/build/python/build/libs.py
+index 9e1602d431..fa2a874fb1 100644
+--- a/build/python/build/libs.py
++++ b/build/python/build/libs.py
+@@ -266,6 +266,7 @@ sqlite3 = AutotoolsProject(
+ 
+ proj = CmakeProject(
+     (
++        "https://github.com/OSGeo/PROJ/releases/download/9.4.0/proj-9.4.0.tar.gz",
+         "http://download.osgeo.org/proj/proj-9.4.0.tar.gz",
+         "https://fossies.org/linux/privat/proj-9.4.0.tar.gz",
+     ),
+diff --git a/doc/input_events.rst b/doc/input_events.rst
+index 99765b5fa4..e11d2c005a 100644
+--- a/doc/input_events.rst
++++ b/doc/input_events.rst
+@@ -202,6 +202,8 @@ Event list
+    - Clear event warnings
+  * - ``Checklist``
+    - Displays the checklist dialog
++    ``Frequencies``
++   - Displays the frequency dialog
+  * - ``Status``
+    - Displays one of the three status dialogs given as an argument: ``system``, ``aircraft``, ``task``
+  * - ``Analysis``
+diff --git a/doc/manual/en/installation.tex b/doc/manual/en/installation.tex
+index c481e5ec13..7365be70c1 100644
+--- a/doc/manual/en/installation.tex
++++ b/doc/manual/en/installation.tex
+@@ -286,6 +286,7 @@ will be placed in the  \texttt{XCSoarData} directory (Windows PC,
+ Windows and Android mobile devices), or the \texttt{.xcsoar} directory (Unix/Linux
+ PC).  From the first run, XCSoar will create and maintain the files
+ \texttt{user.cup} (user-edited waypoints),
++\texttt{user.freq} (user-edited radio frequency list),
+ \texttt{Default.tsk} (Default Task),  
+ \texttt{default.prf} 
+ (configuration settings),
+diff --git a/src/Dialogs/DataField.cpp b/src/Dialogs/DataField.cpp
+index 88af578c7f..0a04e364a2 100644
+--- a/src/Dialogs/DataField.cpp
++++ b/src/Dialogs/DataField.cpp
+@@ -8,6 +8,7 @@
+ #include "Form/DataField/Prefix.hpp"
+ #include "Form/DataField/Date.hpp"
+ #include "Form/DataField/Integer.hpp"
++#include "Form/DataField/Frequency.hpp"
+ #include "ComboPicker.hpp"
+ #include "Dialogs/TextEntry.hpp"
+ #include "Dialogs/TimeEntry.hpp"
+@@ -16,6 +17,7 @@
+ #include "Dialogs/NumberEntry.hpp"
+ #include "MultiFilePicker.hpp"
+ #include "Form/DataField/MultiFile.hpp"
++#include "Dialogs/RadioFrequencyEntry.hpp"
+ 
+ #ifdef ANDROID
+ #include "java/Global.hxx"
+@@ -122,6 +124,14 @@ EditDataFieldDialog(const TCHAR *caption, DataField &df,
+ 
+     sdf.ModifyValue(buffer);
+     return true;
++  } else if (type == DataField::Type::RADIO_FREQUENCY) {
++    RadioFrequencyDataField &fdf = (RadioFrequencyDataField &)df;
++    RadioFrequency value = fdf.GetValue();
++    if (!RadioFrequencyEntryDialog(caption, value, false))
++      return false;
++
++    fdf.ModifyValue(value);
++    return true;
+   } else
+     // don't know how to edit this
+     return false;
+diff --git a/src/Form/DataField/Base.hpp b/src/Form/DataField/Base.hpp
+index 0945e577e5..6467a40ea0 100644
+--- a/src/Form/DataField/Base.hpp
++++ b/src/Form/DataField/Base.hpp
+@@ -37,6 +37,7 @@ public:
+     PREFIX,
+     GEOPOINT,
+     DATE,
++    RADIO_FREQUENCY,
+   };
+ 
+   using ModifiedCallback = std::function<void()>;
+diff --git a/src/Form/DataField/File.cpp b/src/Form/DataField/File.cpp
+index 08790107b4..35f675945d 100644
+--- a/src/Form/DataField/File.cpp
++++ b/src/Form/DataField/File.cpp
+@@ -31,6 +31,7 @@ IsInternalFile(const TCHAR *str) noexcept
+     _T("xcsoar.log"),
+     _T("xcsoar-rasp.dat"),
+     _T("user.cup"),
++    _T("user.freq"),
+     nullptr
+   };
+ 
+diff --git a/src/Form/DigitEntry.cpp b/src/Form/DigitEntry.cpp
+index ab4de246f4..6895342160 100644
+--- a/src/Form/DigitEntry.cpp
++++ b/src/Form/DigitEntry.cpp
+@@ -16,6 +16,7 @@
+ #include "Renderer/SymbolRenderer.hpp"
+ #include "Geo/CoordinateFormat.hpp"
+ #include "Formatter/TimeFormatter.hpp"
++#include "RadioFrequency.hpp"
+ #include "Asset.hpp"
+ 
+ #include <algorithm>
+@@ -206,6 +207,19 @@ DigitEntry::CreateLongitude(ContainerWindow &parent, const PixelRect &rc,
+   CalculateLayout();
+ }
+ 
++void DigitEntry::CreateRadioFrequency(ContainerWindow &parent, const PixelRect &rc, const WindowStyle style)
++{
++  Create(parent, rc, style, 4);
++  columns[0].type = Column::Type::RADIO_FREQURENCY_MHZ_OFFSET;
++  columns[1].type = Column::Type::DECIMAL_POINT;
++  columns[2].type = Column::Type::DIGIT;
++  columns[3].type = Column::Type::RADIO_FREQURENCY_KHZ_SCALED;
++
++  cursor = 0;
++
++  CalculateLayout();
++}
++
+ void
+ DigitEntry::CreateTime(ContainerWindow &parent, const PixelRect &rc,
+                        const WindowStyle style)
+@@ -444,6 +458,19 @@ DigitEntry::SetValue(BrokenDate value)
+   Invalidate();
+ }
+ 
++void DigitEntry::SetValue(RadioFrequency value)
++{
++  assert(length == 4);
++  assert(columns[0].type == Column::Type::RADIO_FREQURENCY_MHZ_OFFSET);
++  assert(columns[1].type == Column::Type::DECIMAL_POINT);
++  assert(columns[2].type == Column::Type::DIGIT);
++  assert(columns[3].type == Column::Type::RADIO_FREQURENCY_KHZ_SCALED);
++
++  columns[0].value = (value.GetKiloHertz() / 1000) - 118;
++  columns[2].value = value.GetKiloHertz() % 1000 / 100;
++  columns[3].value = value.GetKiloHertz() % 100 / 5;
++}
++
+ unsigned
+ DigitEntry::GetPositiveInteger() const
+ {
+@@ -783,6 +810,21 @@ DigitEntry::GetLongitude(CoordinateFormat format) const
+   return GetGeoAngle(format);
+ }
+ 
++RadioFrequency
++DigitEntry::GetRadioFrequency() const
++{
++  assert(length == 4);
++  assert(columns[0].type == Column::Type::RADIO_FREQURENCY_MHZ_OFFSET);
++  assert(columns[1].type == Column::Type::DECIMAL_POINT);
++  assert(columns[2].type == Column::Type::DIGIT);
++  assert(columns[3].type == Column::Type::RADIO_FREQURENCY_KHZ_SCALED);
++
++  unsigned int megaHertz = 118 + columns[0].value;
++  unsigned int kiloHertz = columns[2].value * 100 + columns[3].value * 5;
++
++  return RadioFrequency::FromMegaKiloHertz(megaHertz, kiloHertz);
++}
++
+ void
+ DigitEntry::IncrementColumn(unsigned i)
+ {
+@@ -1034,6 +1076,16 @@ DigitEntry::OnPaint(Canvas &canvas) noexcept
+       _stprintf(buffer, _T("%02u"), c.value);
+       break;
+ 
++    case Column::Type::RADIO_FREQURENCY_MHZ_OFFSET:
++      assert(c.value <= 19);
++      _stprintf(buffer, _T("%03u"), c.value + 118);
++      break;
++
++    case Column::Type::RADIO_FREQURENCY_KHZ_SCALED:
++      assert(c.value <= 19);
++      _stprintf(buffer, _T("%02u"), c.value * 5);
++      break;
++
+     case Column::Type::SIGN:
+       buffer[0] = c.IsNegative() ? _T('-') : _T('+');
+       break;
+diff --git a/src/Form/DigitEntry.hpp b/src/Form/DigitEntry.hpp
+index fb1cd17188..413dd5aa10 100644
+--- a/src/Form/DigitEntry.hpp
++++ b/src/Form/DigitEntry.hpp
+@@ -16,6 +16,7 @@ class Angle;
+ struct BrokenDate;
+ class ContainerWindow;
+ struct DialogLook;
++class RadioFrequency;
+ 
+ /**
+  * A control that allows entering numbers or other data types digit by
+@@ -43,6 +44,8 @@ class DigitEntry : public PaintWindow {
+       DAY,
+       MONTH,
+       YEAR,
++      RADIO_FREQURENCY_MHZ_OFFSET, // Actual value minus 118
++      RADIO_FREQURENCY_KHZ_SCALED, // Last 2 digits divided by 5
+     };
+ 
+     Type type;
+@@ -68,7 +71,9 @@ class DigitEntry : public PaintWindow {
+         type == Type::HOUR ||
+         type == Type::DAY ||
+         type == Type::MONTH ||
+-        type == Type::YEAR;
++        type == Type::YEAR ||
++        type == Type::RADIO_FREQURENCY_MHZ_OFFSET ||
++        type == Type::RADIO_FREQURENCY_KHZ_SCALED;
+     }
+ 
+     constexpr bool NoOverflow() const {
+@@ -98,6 +103,12 @@ class DigitEntry : public PaintWindow {
+       case Type::DIGIT19:
+         return 18;
+ 
++      case Type::RADIO_FREQURENCY_MHZ_OFFSET:
++        return 18;
++
++      case Type::RADIO_FREQURENCY_KHZ_SCALED:
++        return 19;
++
+       case Type::DIGIT36:
+         return 35;
+ 
+@@ -200,6 +211,9 @@ public:
+   void CreateLongitude(ContainerWindow &parent, const PixelRect &rc,
+                        const WindowStyle style, CoordinateFormat format);
+ 
++  void CreateRadioFrequency(ContainerWindow &parent, const PixelRect &rc,
++                             const WindowStyle style);
++
+   void CalculateLayout();
+ 
+   [[gnu::pure]]
+@@ -225,6 +239,7 @@ public:
+   void SetValue(RoughTime value);
+   void SetValue(Angle value);
+   void SetValue(BrokenDate value);
++  void SetValue(RadioFrequency value);
+ 
+   [[gnu::pure]]
+   int GetIntegerValue() const;
+@@ -256,6 +271,9 @@ public:
+   [[gnu::pure]]
+   Angle GetLongitude(CoordinateFormat format) const;
+ 
++  [[gnu::pure]]
++  RadioFrequency GetRadioFrequency() const;
++
+ protected:
+   [[gnu::pure]]
+   bool IsSigned() const {
+diff --git a/src/InfoBoxes/Panel/RadioEdit.cpp b/src/InfoBoxes/Panel/RadioEdit.cpp
+index 0a88320dfd..68e3ad2895 100644
+--- a/src/InfoBoxes/Panel/RadioEdit.cpp
++++ b/src/InfoBoxes/Panel/RadioEdit.cpp
+@@ -3,43 +3,70 @@
+ 
+ #include "RadioEdit.hpp"
+ #include "Look/DialogLook.hpp"
+-#include "Widget/OffsetButtonsWidget.hpp"
++#include "Widget/RadioEditWidget.hpp"
+ #include "Formatter/UserUnits.hpp"
+ #include "ActionInterface.hpp"
+ #include "UIGlobals.hpp"
++#include "Dialogs/Frequency/dlgUserFrequencyList.hpp"
+ 
+-class RadioOffsetButtons final : public OffsetButtonsWidget {
++class RadioEdit final : public RadioEditWidget
++{
+ public:
+-  RadioOffsetButtons(bool active_freq) noexcept
+-    :OffsetButtonsWidget(UIGlobals::GetDialogLook().button, _T("%.0f kHz"), 5, 1000),set_active_freq(active_freq) {}
++  explicit RadioEdit(bool active_freq) noexcept
++      : RadioEditWidget(UIGlobals::GetDialogLook()), set_active_freq(active_freq) {}
+ 
+ protected:
+   /* virtual methods from OffsetButtonsWidget */
+-  void OnOffset(double offset) noexcept override;
++  void OnFrequencyChanged(RadioFrequency new_freq) noexcept override;
++  void OnOpenList() noexcept override;
++  void OnSwapFrequency() noexcept override;
++  RadioFrequency GetCurrentFrequency() const noexcept override;
+ 
+ private:
+-  bool set_active_freq;
++  const bool set_active_freq;
+ };
+ 
+-void
+-RadioOffsetButtons::OnOffset(double offset) noexcept
+-{
+-  if(set_active_freq) {
+-    ActionInterface::OffsetActiveFrequency(offset, true);
+-  } else {
+-    ActionInterface::OffsetStandbyFrequency(offset, true);
+-  }
+-
+-}
+-
+ std::unique_ptr<Widget>
+ LoadActiveRadioFrequencyEditPanel([[maybe_unused]] unsigned id)
+ {
+-  return std::make_unique<RadioOffsetButtons>(true);
++  return std::make_unique<RadioEdit>(true);
+ }
+ 
+ std::unique_ptr<Widget>
+ LoadStandbyRadioFrequencyEditPanel([[maybe_unused]] unsigned id)
+ {
+-  return std::make_unique<RadioOffsetButtons>(false);
++  return std::make_unique<RadioEdit>(false);
++}
++
++void RadioEdit::OnFrequencyChanged(RadioFrequency new_freq) noexcept
++{
++  if (set_active_freq)
++    ActionInterface::SetActiveFrequency(new_freq, _T(""));
++  else
++    ActionInterface::SetStandbyFrequency(new_freq, _T(""));
++}
++
++RadioFrequency RadioEdit::GetCurrentFrequency() const noexcept
++{
++  ComputerSettings &settings =
++      CommonInterface::SetComputerSettings();
++  if (set_active_freq)
++    return settings.radio.active_frequency;
++  else
++    return settings.radio.standby_frequency;
++}
++
++void RadioEdit::OnOpenList() noexcept
++{
++  auto mode = UserFrequencyListWidget::DialogMode::SELECT_ACTIVE;
++  if (!set_active_freq)
++    mode = UserFrequencyListWidget::DialogMode::SELECT_STANDBY;
++  dlgUserFrequencyListWidgetShowModal(mode);
++
++  UpdateFrequencyField(GetCurrentFrequency());
++}
++
++void RadioEdit::OnSwapFrequency() noexcept
++{
++  ActionInterface::ExchangeRadioFrequencies(true);
+ }
+diff --git a/src/Input/InputEvents.hpp b/src/Input/InputEvents.hpp
+index 5ccc7fcf33..b4fea95b16 100644
+--- a/src/Input/InputEvents.hpp
++++ b/src/Input/InputEvents.hpp
+@@ -131,6 +131,7 @@ void eventBallast(const TCHAR *misc);
+ void eventBugs(const TCHAR *misc);
+ void eventCalculator(const TCHAR *misc);
+ void eventChecklist(const TCHAR *misc);
++void eventFrequencies(const TCHAR *misc);
+ void eventClearAirspaceWarnings(const TCHAR *misc);
+ void eventClearStatusMessages(const TCHAR *misc);
+ void eventLogger(const TCHAR *misc);
+diff --git a/src/Input/InputEventsActions.cpp b/src/Input/InputEventsActions.cpp
+index 06f4955cb6..4451ffe536 100644
+--- a/src/Input/InputEventsActions.cpp
++++ b/src/Input/InputEventsActions.cpp
+@@ -71,6 +71,7 @@ https://xcsoar.readthedocs.io/en/latest/input_events.html
+ #include "Components.hpp"
+ #include "BackendComponents.hpp"
+ #include "DataComponents.hpp"
++#include "Dialogs/Frequency/dlgUserFrequencyList.hpp"
+ 
+ #include <cassert>
+ #include <tchar.h>
+@@ -301,6 +302,13 @@ InputEvents::eventChecklist([[maybe_unused]] const TCHAR *misc)
+   dlgChecklistShowModal();
+ }
+ 
++// User Frequencies List
++void
++InputEvents::eventFrequencies([[maybe_unused]] const TCHAR *misc)
++{
++  dlgUserFrequencyListWidgetShowModal(UserFrequencyListWidget::DialogMode::BROWSE);
++}
++
+ // Status
+ // Displays one of the three status dialogs:
+ //    system: display the system status
+diff --git a/src/Widget/EditRowFormWidget.cpp b/src/Widget/EditRowFormWidget.cpp
+index 1ba48bc937..c864eee75e 100644
+--- a/src/Widget/EditRowFormWidget.cpp
++++ b/src/Widget/EditRowFormWidget.cpp
+@@ -14,6 +14,7 @@
+ #include "Form/DataField/Date.hpp"
+ #include "Form/DataField/Time.hpp"
+ #include "Form/DataField/RoughTime.hpp"
++#include "Form/DataField/Frequency.hpp"
+ #include "time/RoughTime.hpp"
+ #include "time/BrokenDate.hpp"
+ #include "Language/Language.hpp"
+@@ -139,6 +140,17 @@ RowFormWidget::AddFloat(const TCHAR *label, const TCHAR *help,
+   return edit;
+ }
+ 
++WndProperty *
++RowFormWidget::AddFrequency(const TCHAR *label, const TCHAR *help,
++                        RadioFrequency value,
++                        DataFieldListener *listener) noexcept
++{
++  WndProperty *edit = Add(label, help);
++  RadioFrequencyDataField *df = new RadioFrequencyDataField(value, listener);
++  edit->SetDataField(df);
++  return edit;
++}
++
+ WndProperty *
+ RowFormWidget::AddAngle(const TCHAR *label, const TCHAR *help,
+                         Angle value, unsigned step, bool fine,
+@@ -359,6 +371,16 @@ RowFormWidget::GetValueFloat(unsigned i) const noexcept
+   return df.GetValue();
+ }
+ 
++RadioFrequency RowFormWidget::GetValueRadioFrequency(unsigned i) const noexcept
++{
++  const RadioFrequencyDataField &df =
++    (const RadioFrequencyDataField &)GetDataField(i);
++  assert(df.GetType() == DataField::Type::RADIO_FREQUENCY);
++  if(df.GetType() != DataField::Type::RADIO_FREQUENCY)
++    return RadioFrequency::Null();
++  return df.GetValue();
++}
++
+ Angle
+ RowFormWidget::GetValueAngle(unsigned i) const noexcept
+ {
+diff --git a/src/Widget/RowFormWidget.hpp b/src/Widget/RowFormWidget.hpp
+index 2695cd9d8d..2a105ebf2f 100644
+--- a/src/Widget/RowFormWidget.hpp
++++ b/src/Widget/RowFormWidget.hpp
+@@ -11,6 +11,9 @@
+ #include "time/BrokenDate.hpp"
+ #include "time/FloatDuration.hxx"
+ #include "time/RoughTimeDecl.hpp"
++#include "Repository/FileType.hpp"
++#include "Units/Group.hpp"
++#include "RadioFrequency.hpp"
+ 
+ #include <boost/container/static_vector.hpp>
+ 
+@@ -366,6 +369,10 @@ public:
+                         double value,
+                         DataFieldListener *listener=nullptr) noexcept;
+ 
++  WndProperty *AddFrequency(const TCHAR *label, const TCHAR *help,
++                        RadioFrequency value,
++                        DataFieldListener *listener) noexcept;
++
+   WndProperty *AddFloat(const TCHAR *label, const TCHAR *help,
+                         const TCHAR *display_format,
+                         const TCHAR *edit_format,
+@@ -615,6 +622,9 @@ public:
+   [[gnu::pure]]
+   double GetValueFloat(unsigned i) const noexcept;
+ 
++  [[gnu::pure]]
++  RadioFrequency GetValueRadioFrequency(unsigned i) const noexcept;
++
+   [[gnu::pure]]
+   Angle GetValueAngle(unsigned i) const noexcept;
+ 
