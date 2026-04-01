@@ -11,6 +11,7 @@
 #include "Renderer/WaveRenderer.hpp"
 #include "Operation/Operation.hpp"
 #include "Tracking/SkyLines/Data.hpp"
+#include "net/http/Features.hpp"
 
 #ifdef HAVE_NOAA
 #include "Weather/NOAAStore.hpp"
@@ -269,6 +270,10 @@ MapWindow::Render(Canvas &canvas, const PixelRect &rc) noexcept
 
 #ifdef HAVE_SKYLINES_TRACKING
   DrawSkyLinesTraffic(canvas);
+#endif
+
+#ifdef HAVE_HTTP
+  DrawTeamsTraffic(canvas);
 #endif
 
   DrawGLinkTraffic(canvas);
