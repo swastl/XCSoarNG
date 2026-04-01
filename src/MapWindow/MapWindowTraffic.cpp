@@ -10,7 +10,9 @@
 #include "Renderer/TrafficRenderer.hpp"
 #include "FLARM/Friends.hpp"
 #include "Tracking/SkyLines/Data.hpp"
+#include "Tracking/Teams/Data.hpp"
 #include "util/StringCompare.hxx"
+#include "util/StaticString.hxx"
 
 #include <cassert>
 
@@ -253,6 +255,40 @@ MapWindow::DrawSkyLinesTraffic(Canvas &canvas) const noexcept
         p->y -= Layout::Scale(10);
         TextInBox(canvas, buffer, *p, mode, GetClientRect());
       }
+    }
+  }
+}
+
+#endif
+
+#ifdef HAVE_HTTP
+
+void
+MapWindow::DrawTeamsTraffic(Canvas &canvas) const noexcept
+{
+  if (teams_data == nullptr)
+    return;
+
+  canvas.Select(*traffic_look.font);
+
+  const std::lock_guard lock{teams_data->mutex};
+  for (const auto &member : teams_data->members) {
+    /* skip own position - it's the aircraft we're flying */
+    if (member.own_position)
+      continue;
+
+    if (auto p = render_projection.GeoToScreenIfVisible(member.location)) {
+      traffic_look.teammate_icon.Draw(canvas, *p);
+
+      StaticString<128> buffer;
+      buffer.Format("%s [%dm]", member.username.c_str(), member.altitude);
+
+      TextInBoxMode mode;
+      mode.shape = LabelShape::OUTLINED;
+
+      PixelPoint label_pos = *p;
+      label_pos.y -= Layout::Scale(10);
+      TextInBox(canvas, buffer, label_pos, mode, GetClientRect());
     }
   }
 }
