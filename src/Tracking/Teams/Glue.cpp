@@ -26,6 +26,8 @@ static constexpr const char *GET_URL =
   "https://backend.xcsoar-teams.web.blueberrybirds.de/api/positions/team";
 static constexpr std::chrono::seconds FETCH_INTERVAL{30};
 
+static constexpr std::size_t ISO8601_BUFFER_SIZE = 32;
+
 /**
  * RAII wrapper for curl_slist (HTTP headers list).
  */
@@ -94,7 +96,7 @@ Glue::Tick(Settings settings)
 {
   if (settings.enabled && !settings.api_key.empty()) {
     /* POST own position */
-    char iso_time[64];
+    char iso_time[ISO8601_BUFFER_SIZE];
     FormatISO8601(iso_time, timestamp);
 
     const auto json_body = fmt::format(
@@ -172,7 +174,7 @@ Glue::Tick(Settings settings)
 
         if (const auto *v = obj.if_contains("altitude");
             v != nullptr && v->is_number())
-          m.altitude = (int)v->to_number<double>();
+          m.altitude = static_cast<int>(v->to_number<double>());
 
         if (const auto *v = obj.if_contains("heading");
             v != nullptr && v->is_number())
