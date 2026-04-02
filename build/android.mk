@@ -351,6 +351,8 @@ $(ANDROID_OUTPUT_DIR)/resources.apk: $(PNG_FILES) $(SOUND_FILES) $(ANDROID_XML_R
 $(GEN_DIR)/org/xcsoar/R.java: $(ANDROID_OUTPUT_DIR)/resources.apk
 
 # Note: Requires JDK 17 or later. JAVA_HOME should point to JDK 17 installation.
+ZXING_CORE_JAR = android/lib/zxing-core.jar
+
 $(ANDROID_OUTPUT_DIR)/classes.jar: $(JAVA_SOURCES) $(GEN_DIR)/org/xcsoar/R.java | $(JAVA_CLASSFILES_DIR)/dirstamp
 	@$(NQ)echo "  JAVAC   $(JAVA_CLASSFILES_DIR)"
 	$(Q)$(filter-out -Werror,$(JAVAC)) \
@@ -361,7 +363,7 @@ $(ANDROID_OUTPUT_DIR)/classes.jar: $(JAVA_SOURCES) $(GEN_DIR)/org/xcsoar/R.java 
 		-Xlint:-serial \
 		-Xlint:-static \
 		-Xlint:-this-escape \
-		-cp $(ANDROID_SDK_PLATFORM_DIR)/android.jar:$(JAVA_CLASSFILES_DIR) \
+		-cp $(ANDROID_SDK_PLATFORM_DIR)/android.jar:$(JAVA_CLASSFILES_DIR):$(ZXING_CORE_JAR) \
 		-d $(JAVA_CLASSFILES_DIR) $(GEN_DIR)/org/xcsoar/R.java \
 		-h $(NATIVE_INCLUDE) \
 		$(JAVA_SOURCES)
@@ -374,7 +376,7 @@ $(ANDROID_OUTPUT_DIR)/classes.dex: $(ANDROID_OUTPUT_DIR)/classes.jar
 	$(Q)$(D8) \
 		--min-api 21 \
 		--lib $(ANDROID_SDK_PLATFORM_DIR)/android.jar \
-		--output $(ANDROID_OUTPUT_DIR) $(ANDROID_OUTPUT_DIR)/classes.jar
+		--output $(ANDROID_OUTPUT_DIR) $(ANDROID_OUTPUT_DIR)/classes.jar $(ZXING_CORE_JAR)
 
 ifeq ($(FAT_BINARY),y)
 

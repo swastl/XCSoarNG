@@ -11,6 +11,8 @@
 #include "FLARM/Friends.hpp"
 #include "Tracking/SkyLines/Data.hpp"
 #include "Tracking/Teams/Data.hpp"
+#include "Math/Screen.hpp"
+#include "util/Macros.hpp"
 #include "util/StringCompare.hxx"
 #include "util/StaticString.hxx"
 
@@ -269,8 +271,6 @@ MapWindow::DrawTeamsTraffic(Canvas &canvas) const noexcept
   if (teams_data == nullptr)
     return;
 
-  canvas.Select(*traffic_look.font);
-
   const std::lock_guard lock{teams_data->mutex};
   for (const auto &member : teams_data->members) {
     /* skip own position - it's the aircraft we're flying */
@@ -278,16 +278,29 @@ MapWindow::DrawTeamsTraffic(Canvas &canvas) const noexcept
       continue;
 
     if (auto p = render_projection.GeoToScreenIfVisible(member.location)) {
-      traffic_look.teammate_icon.Draw(canvas, *p);
+      // Draw oriented aircraft arrow rotated by heading
+      BulkPixelPoint arrow[] = {
+        { -4, 6 },
+        { 0, -8 },
+        { 4, 6 },
+        { 0, 3 },
+      };
+      const Angle angle = member.heading - render_projection.GetScreenAngle();
+      PolygonRotateShift(arrow, *p, angle, Layout::Scale(100U));
+      canvas.Select(traffic_look.safe_above_brush);
+      canvas.SelectBlackPen();
+      canvas.DrawPolygon(arrow, ARRAY_SIZE(arrow));
 
+      // Draw name and altitude label above the icon
       StaticString<128> buffer;
       buffer.Format("%s [%dm]", member.username.c_str(), member.altitude);
 
       TextInBoxMode mode;
       mode.shape = LabelShape::OUTLINED;
 
+      canvas.Select(*traffic_look.font);
       PixelPoint label_pos = *p;
-      label_pos.y -= Layout::Scale(10);
+      label_pos.y -= Layout::Scale(20);
       TextInBox(canvas, buffer, label_pos, mode, GetClientRect());
     }
   }

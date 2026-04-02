@@ -3,6 +3,7 @@
 
 #include "QRCodeScanner.hpp"
 #include "Main.hpp"
+#include "Context.hpp"
 #include "java/Global.hxx"
 #include "java/String.hxx"
 #include "java/Class.hxx"
