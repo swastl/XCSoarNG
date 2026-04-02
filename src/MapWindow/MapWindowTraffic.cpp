@@ -3,6 +3,7 @@
 
 #include "MapWindow.hpp"
 #include "ui/canvas/Icon.hpp"
+#include "ui/canvas/Brush.hpp"
 #include "Screen/Layout.hpp"
 #include "Formatter/UserUnits.hpp"
 #include "Look/TrafficLook.hpp"
@@ -271,6 +272,35 @@ MapWindow::DrawTeamsTraffic(Canvas &canvas) const noexcept
   if (teams_data == nullptr)
     return;
 
+  const auto &map_settings = GetMapSettings();
+  const bool draw_circle =
+    map_settings.teams_traffic_display_style ==
+    TeamsTrafficDisplayStyle::ARROW_WITH_CIRCLE;
+
+  Color fill_color;
+  switch (map_settings.teams_traffic_color) {
+  case TeamsTrafficColor::BLUE:
+    fill_color = Color(0x00, 0x90, 0xff);
+    break;
+  case TeamsTrafficColor::RED:
+    fill_color = Color(0xfb, 0x35, 0x2f);
+    break;
+  case TeamsTrafficColor::YELLOW:
+    fill_color = Color(0xff, 0xe8, 0x00);
+    break;
+  case TeamsTrafficColor::MAGENTA:
+    fill_color = Color(0xff, 0x00, 0xcb);
+    break;
+  case TeamsTrafficColor::CYAN:
+    fill_color = Color(0x00, 0xff, 0xff);
+    break;
+  default: /* GREEN */
+    fill_color = Color(0x1d, 0xc5, 0x10);
+    break;
+  }
+
+  Brush fill_brush(fill_color);
+
   const std::lock_guard lock{teams_data->mutex};
   for (const auto &member : teams_data->members) {
     /* skip own position - it's the aircraft we're flying */
@@ -278,6 +308,14 @@ MapWindow::DrawTeamsTraffic(Canvas &canvas) const noexcept
       continue;
 
     if (auto p = render_projection.GeoToScreenIfVisible(member.location)) {
+      canvas.Select(fill_brush);
+      canvas.SelectBlackPen();
+
+      if (draw_circle) {
+        const int radius = Layout::Scale(12);
+        canvas.DrawCircle(*p, radius);
+      }
+
       // Draw oriented aircraft arrow rotated by heading
       BulkPixelPoint arrow[] = {
         { -4, 6 },
@@ -287,8 +325,6 @@ MapWindow::DrawTeamsTraffic(Canvas &canvas) const noexcept
       };
       const Angle angle = member.heading - render_projection.GetScreenAngle();
       PolygonRotateShift(arrow, *p, angle, Layout::Scale(100U));
-      canvas.Select(traffic_look.safe_above_brush);
-      canvas.SelectBlackPen();
       canvas.DrawPolygon(arrow, ARRAY_SIZE(arrow));
 
       // Draw name and altitude label above the icon
@@ -300,7 +336,7 @@ MapWindow::DrawTeamsTraffic(Canvas &canvas) const noexcept
 
       canvas.Select(*traffic_look.font);
       PixelPoint label_pos = *p;
-      label_pos.y -= Layout::Scale(20);
+      label_pos.y -= Layout::Scale(draw_circle ? 26 : 20);
       TextInBox(canvas, buffer, label_pos, mode, GetClientRect());
     }
   }

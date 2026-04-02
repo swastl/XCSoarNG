@@ -40,6 +40,9 @@
 #include "Renderer/NOAAListRenderer.hpp"
 #endif
 
+#include "Geo/GeoVector.hpp"
+#include "Interface.hpp"
+
 using namespace std::chrono;
 
 unsigned
@@ -414,6 +417,35 @@ Draw(Canvas &canvas, PixelRect rc,
 
 #endif /* HAVE_SKYLINES_TRACKING */
 
+#ifdef HAVE_HTTP
+
+static void
+Draw(Canvas &canvas, PixelRect rc,
+     const TeamsTrafficMapItem &item,
+     const TwoTextRowsRenderer &row_renderer)
+{
+  rc.right = row_renderer.DrawRightFirstRow(canvas, rc,
+                                            FormatUserAltitude(item.altitude));
+
+  row_renderer.DrawFirstRow(canvas, rc, item.name);
+
+  StaticString<80> info;
+  const auto &basic = CommonInterface::Basic();
+  if (basic.location_available) {
+    const GeoVector vec = basic.location.DistanceBearing(item.location);
+    info.UnsafeFormat("%s: %s, %s: %s",
+                      _("Distance"),
+                      FormatUserDistanceSmart(vec.distance).c_str(),
+                      _("Bearing"),
+                      FormatBearing(vec.bearing).c_str());
+  } else {
+    info = _("Position unknown");
+  }
+  row_renderer.DrawSecondRow(canvas, rc, info);
+}
+
+#endif /* HAVE_HTTP */
+
 static void
 Draw(Canvas &canvas, PixelRect rc,
      const OverlayMapItem &item,
@@ -478,6 +510,12 @@ MapItemListRenderer::Draw(Canvas &canvas, const PixelRect rc,
 #ifdef HAVE_SKYLINES_TRACKING
   case MapItem::Type::SKYLINES_TRAFFIC:
     ::Draw(canvas, rc, (const SkyLinesTrafficMapItem &)item, row_renderer);
+    break;
+#endif
+
+#ifdef HAVE_HTTP
+  case MapItem::Type::TEAMS_TRAFFIC:
+    ::Draw(canvas, rc, (const TeamsTrafficMapItem &)item, row_renderer);
     break;
 #endif
 

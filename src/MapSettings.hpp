@@ -55,6 +55,20 @@ enum class DisplaySkyLinesTrafficMapMode: uint8_t {
   SYMBOL_NAME,
 };
 
+enum class TeamsTrafficDisplayStyle : uint8_t {
+  ARROW,
+  ARROW_WITH_CIRCLE,
+};
+
+enum class TeamsTrafficColor : uint8_t {
+  GREEN,
+  BLUE,
+  RED,
+  YELLOW,
+  MAGENTA,
+  CYAN,
+};
+
 struct MapItemListSettings {
 
   /** Add an LocationMapItem to the MapItemList? */
@@ -182,6 +196,12 @@ struct MapSettings {
    * Display skylines name on map
    */
   DisplaySkyLinesTrafficMapMode skylines_traffic_map_mode;
+
+  /** Display style for Teams traffic on the map */
+  TeamsTrafficDisplayStyle teams_traffic_display_style;
+
+  /** Color for Teams traffic symbols on the map */
+  TeamsTrafficColor teams_traffic_color;
 
   FAITriangleSettings fai_triangle_settings;
 
