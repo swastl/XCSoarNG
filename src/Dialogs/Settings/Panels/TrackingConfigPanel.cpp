@@ -18,6 +18,9 @@
 #include "Interface.hpp"
 #include "UIGlobals.hpp"
 #include "util/NumberParser.hpp"
+#ifdef ANDROID
+#include "Android/QRCodeScanner.hpp"
+#endif
 
 enum ControlIndex {
 #ifdef HAVE_SKYLINES_TRACKING
@@ -47,6 +50,9 @@ enum ControlIndex {
   TEAMS_TEAM_ENABLED,
   TEAMS_INTERVAL,
   TEAMS_API_KEY,
+#ifdef ANDROID
+  TEAMS_API_KEY_SCAN_BUTTON,
+#endif
 };
 
 class TrackingConfigPanel final
@@ -115,6 +121,9 @@ TrackingConfigPanel::SetTeamsEnabled(bool enabled)
   SetRowEnabled(TEAMS_TEAM_ENABLED, enabled);
   SetRowEnabled(TEAMS_INTERVAL, enabled);
   SetRowEnabled(TEAMS_API_KEY, enabled);
+#ifdef ANDROID
+  SetRowEnabled(TEAMS_API_KEY_SCAN_BUTTON, enabled);
+#endif
 }
 
 void
@@ -275,6 +284,14 @@ TrackingConfigPanel::Prepare(ContainerWindow &parent, const PixelRect &rc) noexc
   AddText(_("API Key"),
           _("Your XCSoar Teams API key for authentication."),
           settings.teams.api_key);
+#ifdef ANDROID
+  AddButton(_("Scan QR Code"), [this]() {
+    QRCodeScanner::StartScan([this](const char *key) {
+      if (key != nullptr && *key != '\0')
+        LoadValue(TEAMS_API_KEY, key);
+    });
+  });
+#endif
 #endif
 
 #ifdef HAVE_SKYLINES_TRACKING

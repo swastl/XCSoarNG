@@ -388,6 +388,14 @@ public class XCSoar extends Activity implements PermissionManager {
     System.exit(0);
   }
 
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    super.onActivityResult(requestCode, resultCode, data);
+    if (requestCode == QRCodeScanner.REQUEST_CODE) {
+      QRCodeScanner.onActivityResult(resultCode, data);
+    }
+  }
+
   @Override public boolean onKeyDown(int keyCode, final KeyEvent event) {
     if (nativeView != null && nativeView.onKeyDown(keyCode, event))
       return true;
