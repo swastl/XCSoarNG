@@ -236,7 +236,9 @@ struct TeamsTrafficMapItem : public MapItem
      name(_name) {}
 };
 
-#endif: public MapItem
+#endif
+
+struct ThermalMapItem: public MapItem
 {
   ThermalSource thermal;
 
