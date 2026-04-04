@@ -422,8 +422,18 @@ Draw(Canvas &canvas, PixelRect rc,
 static void
 Draw(Canvas &canvas, PixelRect rc,
      const TeamsTrafficMapItem &item,
-     const TwoTextRowsRenderer &row_renderer)
+     const TwoTextRowsRenderer &row_renderer,
+     const AircraftLook &aircraft_look,
+     const MapSettings &settings)
 {
+  const unsigned line_height = rc.GetHeight();
+  const unsigned text_padding = Layout::GetTextPadding();
+
+  const PixelPoint pt(rc.left + line_height / 2, rc.top + line_height / 2);
+  AircraftRenderer::Draw(canvas, settings, aircraft_look, item.heading, pt);
+
+  rc.left += line_height + text_padding;
+
   rc.right = row_renderer.DrawRightFirstRow(canvas, rc,
                                             FormatUserAltitude(item.altitude));
 
@@ -515,7 +525,8 @@ MapItemListRenderer::Draw(Canvas &canvas, const PixelRect rc,
 
 #ifdef HAVE_HTTP
   case MapItem::Type::TEAMS_TRAFFIC:
-    ::Draw(canvas, rc, (const TeamsTrafficMapItem &)item, row_renderer);
+    ::Draw(canvas, rc, (const TeamsTrafficMapItem &)item, row_renderer,
+           look.aircraft, settings);
     break;
 #endif
 

@@ -31,13 +31,6 @@ struct MapItem
     LOCATION,
     ARRIVAL_ALTITUDE,
     SELF,
-    TASK_OZ,
-#ifdef HAVE_NOAA
-    WEATHER,
-#endif
-    AIRSPACE,
-    THERMAL,
-    WAYPOINT,
     TRAFFIC,
 #ifdef HAVE_SKYLINES_TRACKING
     SKYLINES_TRAFFIC,
@@ -45,6 +38,13 @@ struct MapItem
 #ifdef HAVE_HTTP
     TEAMS_TRAFFIC,
 #endif
+    TASK_OZ,
+#ifdef HAVE_NOAA
+    WEATHER,
+#endif
+    AIRSPACE,
+    THERMAL,
+    WAYPOINT,
     OVERLAY,
     RASP,
   } type;
