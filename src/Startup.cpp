@@ -460,10 +460,6 @@ Startup(UI::Display &display)
   }
 #endif
 
-  // Show unified Quick Guide dialog (warranty + guide pages)
-  if (!dlgQuickGuideShowModal())
-    return false;
-
   GlidePolar &gp = CommonInterface::SetComputerSettings().polar.glide_polar_task;
   gp = GlidePolar(0);
   gp.SetMC(computer_settings.task.safety_mc);
@@ -626,6 +622,10 @@ Startup(UI::Display &display)
   backend_components->calculation_thread->Start();
 
   PageActions::Update();
+
+  // Show unified Quick Guide dialog (warranty + guide pages) after map is visible
+  if (!dlgQuickGuideShowModal())
+    return false;
 
 #ifdef HAVE_HTTP
   net_components = new NetComponents(*asio_thread, *Net::curl,
