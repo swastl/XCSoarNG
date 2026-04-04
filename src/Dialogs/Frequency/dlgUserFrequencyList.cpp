@@ -199,6 +199,14 @@ private:
       return GetUserFreqCount() + 1 + (unsigned)nearby_airports.size();
     return GetUserFreqCount();
   }
+
+  /**
+   * Get frequency and name for the item at @p index.
+   * Returns false if the item has no valid frequency (e.g. separator).
+   */
+  bool GetFrequencyAtIndex(unsigned index,
+                           RadioFrequency &freq,
+                           std::string &name) const noexcept;
 };
 
 void
@@ -250,23 +258,7 @@ UserFrequencyListWidgetImpl::CreateButtons(WidgetDialog &dialog) noexcept
       const unsigned index = GetList().GetCursorIndex();
       RadioFrequency freq;
       std::string name;
-
-      if (IsAirportIndex(index)) {
-        const unsigned ai = GetAirportListIndex(index);
-        if (ai >= nearby_airports.size())
-          return;
-        const auto &wp = *nearby_airports[ai].waypoint;
-        freq = wp.radio_frequency;
-        name = wp.name;
-      } else {
-        if (index >= g_user_frequencies.size())
-          return;
-        const auto &entry = g_user_frequencies[index];
-        freq = entry.frequency;
-        name = entry.name;
-      }
-
-      if (!freq.IsDefined())
+      if (!GetFrequencyAtIndex(index, freq, name))
         return;
 
       if (for_active)
@@ -286,23 +278,7 @@ UserFrequencyListWidgetImpl::CreateButtons(WidgetDialog &dialog) noexcept
       const unsigned index = GetList().GetCursorIndex();
       RadioFrequency freq;
       std::string name;
-
-      if (IsAirportIndex(index)) {
-        const unsigned ai = GetAirportListIndex(index);
-        if (ai >= nearby_airports.size())
-          return;
-        const auto &wp = *nearby_airports[ai].waypoint;
-        freq = wp.radio_frequency;
-        name = wp.name;
-      } else {
-        if (index >= g_user_frequencies.size())
-          return;
-        const auto &entry = g_user_frequencies[index];
-        freq = entry.frequency;
-        name = entry.name;
-      }
-
-      if (!freq.IsDefined())
+      if (!GetFrequencyAtIndex(index, freq, name))
         return;
 
       if (mode == UserFrequencyListWidget::DialogMode::SELECT_ACTIVE)
@@ -460,6 +436,32 @@ UserFrequencyListWidgetImpl::LoadNearbyAirports() noexcept
     if (alt.waypoint->radio_frequency.IsDefined())
       nearby_airports.push_back(alt);
   }
+}
+
+bool
+UserFrequencyListWidgetImpl::GetFrequencyAtIndex(unsigned index,
+                                                  RadioFrequency &freq,
+                                                  std::string &name) const noexcept
+{
+  if (IsSeparatorIndex(index))
+    return false;
+
+  if (IsAirportIndex(index)) {
+    const unsigned ai = GetAirportListIndex(index);
+    if (ai >= nearby_airports.size())
+      return false;
+    const auto &wp = *nearby_airports[ai].waypoint;
+    freq = wp.radio_frequency;
+    name = wp.name;
+  } else {
+    if (index >= g_user_frequencies.size())
+      return false;
+    const auto &entry = g_user_frequencies[index];
+    freq = entry.frequency;
+    name = entry.name.c_str();
+  }
+
+  return freq.IsDefined();
 }
 
 void
