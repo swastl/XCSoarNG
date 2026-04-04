@@ -24,7 +24,10 @@
 #include "Components.hpp"
 #include "BackendComponents.hpp"
 #include "Task/ProtectedTaskManager.hpp"
+#include "Engine/Task/TaskManager.hpp"
 #include "Engine/Task/Unordered/AlternateList.hpp"
+#include "Engine/Waypoint/Waypoint.hpp"
+#include "ui/canvas/Canvas.hpp"
 #include "Look/Colors.hpp"
 #include "Screen/Layout.hpp"
 
