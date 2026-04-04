@@ -6,9 +6,12 @@
 #include "Dialogs/WidgetDialog.hpp"
 #include "Widget/ListWidget.hpp"
 #include "Renderer/TwoTextRowsRenderer.hpp"
+#include "Renderer/WaypointListRenderer.hpp"
 #include "ActionInterface.hpp"
 #include "UIGlobals.hpp"
 #include "Look/DialogLook.hpp"
+#include "Look/MapLook.hpp"
+#include "Interface.hpp"
 #include "Language/Language.hpp"
 #include "LocalPath.hpp"
 #include "RadioFrequency.hpp"
@@ -18,6 +21,12 @@
 #include "util/StaticString.hxx"
 #include "util/StringSplit.hxx"
 #include "LogFile.hpp"
+#include "Components.hpp"
+#include "BackendComponents.hpp"
+#include "Task/ProtectedTaskManager.hpp"
+#include "Engine/Task/Unordered/AlternateList.hpp"
+#include "Look/Colors.hpp"
+#include "Screen/Layout.hpp"
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -125,6 +134,9 @@ class UserFrequencyListWidgetImpl final : public ListWidget {
   Button *edit_button = nullptr;
   Button *delete_button = nullptr;
 
+  /** Up to 3 nearest airports with radio frequencies (from alternates list). */
+  AlternateList nearby_airports;
+
 public:
   explicit UserFrequencyListWidgetImpl(UserFrequencyListWidget::DialogMode _mode) noexcept
     : mode(_mode) {}
@@ -139,8 +151,8 @@ public:
                    unsigned index) noexcept override;
 
   /* virtual methods from ListCursorHandler */
-  bool CanActivateItem([[maybe_unused]] unsigned index) const noexcept override {
-    return true;
+  bool CanActivateItem(unsigned index) const noexcept override {
+    return !IsSeparatorIndex(index);
   }
 
   void OnActivateItem(unsigned index) noexcept override;
@@ -151,6 +163,42 @@ public:
 
 private:
   void UpdateButtons() noexcept;
+  void LoadNearbyAirports() noexcept;
+
+  [[gnu::pure]]
+  unsigned GetUserFreqCount() const noexcept {
+    return (unsigned)g_user_frequencies.size();
+  }
+
+  [[gnu::pure]]
+  bool HasNearbyAirports() const noexcept {
+    return !nearby_airports.empty();
+  }
+
+  /** True if @p index is the separator row between user freqs and nearby airports. */
+  [[gnu::pure]]
+  bool IsSeparatorIndex(unsigned index) const noexcept {
+    return HasNearbyAirports() && index == GetUserFreqCount();
+  }
+
+  /** True if @p index refers to a nearby airport row. */
+  [[gnu::pure]]
+  bool IsAirportIndex(unsigned index) const noexcept {
+    return HasNearbyAirports() && index > GetUserFreqCount();
+  }
+
+  /** Convert list index to index into nearby_airports. */
+  [[gnu::pure]]
+  unsigned GetAirportListIndex(unsigned index) const noexcept {
+    return index - GetUserFreqCount() - 1;
+  }
+
+  [[gnu::pure]]
+  unsigned GetTotalCount() const noexcept {
+    if (HasNearbyAirports())
+      return GetUserFreqCount() + 1 + (unsigned)nearby_airports.size();
+    return GetUserFreqCount();
+  }
 };
 
 void
@@ -200,15 +248,31 @@ UserFrequencyListWidgetImpl::CreateButtons(WidgetDialog &dialog) noexcept
   } else if (mode == UserFrequencyListWidget::DialogMode::SELECT_BOTH) {
     auto on_select = [this, &dialog](bool for_active) {
       const unsigned index = GetList().GetCursorIndex();
-      if (index >= g_user_frequencies.size())
+      RadioFrequency freq;
+      std::string name;
+
+      if (IsAirportIndex(index)) {
+        const unsigned ai = GetAirportListIndex(index);
+        if (ai >= nearby_airports.size())
+          return;
+        const auto &wp = *nearby_airports[ai].waypoint;
+        freq = wp.radio_frequency;
+        name = wp.name;
+      } else {
+        if (index >= g_user_frequencies.size())
+          return;
+        const auto &entry = g_user_frequencies[index];
+        freq = entry.frequency;
+        name = entry.name;
+      }
+
+      if (!freq.IsDefined())
         return;
-      const auto &entry = g_user_frequencies[index];
+
       if (for_active)
-        ActionInterface::SetActiveFrequency(entry.frequency,
-                                            entry.name.c_str());
+        ActionInterface::SetActiveFrequency(freq, name.c_str());
       else
-        ActionInterface::SetStandbyFrequency(entry.frequency,
-                                             entry.name.c_str());
+        ActionInterface::SetStandbyFrequency(freq, name.c_str());
       dialog.SetModalResult(mrOK);
     };
 
@@ -220,15 +284,31 @@ UserFrequencyListWidgetImpl::CreateButtons(WidgetDialog &dialog) noexcept
   } else {
     select_button = dialog.AddButton(_("Select"), [this, &dialog]() {
       const unsigned index = GetList().GetCursorIndex();
-      if (index >= g_user_frequencies.size())
+      RadioFrequency freq;
+      std::string name;
+
+      if (IsAirportIndex(index)) {
+        const unsigned ai = GetAirportListIndex(index);
+        if (ai >= nearby_airports.size())
+          return;
+        const auto &wp = *nearby_airports[ai].waypoint;
+        freq = wp.radio_frequency;
+        name = wp.name;
+      } else {
+        if (index >= g_user_frequencies.size())
+          return;
+        const auto &entry = g_user_frequencies[index];
+        freq = entry.frequency;
+        name = entry.name;
+      }
+
+      if (!freq.IsDefined())
         return;
-      const auto &entry = g_user_frequencies[index];
+
       if (mode == UserFrequencyListWidget::DialogMode::SELECT_ACTIVE)
-        ActionInterface::SetActiveFrequency(entry.frequency,
-                                            entry.name.c_str());
+        ActionInterface::SetActiveFrequency(freq, name.c_str());
       else
-        ActionInterface::SetStandbyFrequency(entry.frequency,
-                                             entry.name.c_str());
+        ActionInterface::SetStandbyFrequency(freq, name.c_str());
       dialog.SetModalResult(mrOK);
     });
 
@@ -246,7 +326,10 @@ UserFrequencyListWidgetImpl::Prepare(ContainerWindow &parent,
              row_renderer.CalculateLayout(*look.list.font_bold,
                                           look.small_font));
 
-  GetList().SetLength(g_user_frequencies.size());
+  if (mode != UserFrequencyListWidget::DialogMode::BROWSE)
+    LoadNearbyAirports();
+
+  GetList().SetLength(GetTotalCount());
   UpdateButtons();
 }
 
@@ -254,6 +337,47 @@ void
 UserFrequencyListWidgetImpl::OnPaintItem(Canvas &canvas, const PixelRect rc,
                                          unsigned index) noexcept
 {
+  if (IsSeparatorIndex(index)) {
+    /* draw a separator line with "Nearby Airports" label */
+    const DialogLook &look = UIGlobals::GetDialogLook();
+    const unsigned mid_y = (rc.top + rc.bottom) / 2;
+    const unsigned padding = Layout::GetTextPadding();
+
+    canvas.Select(look.small_font);
+    const auto label = _("Nearby Airports");
+    const unsigned text_width = canvas.CalcTextWidth(label);
+
+    /* horizontal line left side */
+    canvas.DrawHLine(rc.left + padding, rc.left + padding + 20,
+                     mid_y, COLOR_GRAY);
+    /* label */
+    const unsigned text_x = rc.left + padding + 24;
+    canvas.SetTextColor(COLOR_GRAY);
+    canvas.SetBackgroundTransparent();
+    canvas.DrawText({(int)text_x, (int)(mid_y - look.small_font.GetHeight() / 2)}, label);
+    /* horizontal line right side */
+    const unsigned right_x = text_x + text_width + 4;
+    if ((int)right_x < rc.right - (int)padding)
+      canvas.DrawHLine(right_x, rc.right - padding, mid_y, COLOR_GRAY);
+    return;
+  }
+
+  if (IsAirportIndex(index)) {
+    const unsigned ai = GetAirportListIndex(index);
+    if (ai >= nearby_airports.size())
+      return;
+
+    const ComputerSettings &settings = CommonInterface::GetComputerSettings();
+    const auto &alt = nearby_airports[ai];
+    WaypointListRenderer::Draw(canvas, rc, *alt.waypoint,
+                               alt.solution.vector.distance,
+                               alt.solution.SelectAltitudeDifference(settings.task.glide),
+                               row_renderer,
+                               UIGlobals::GetMapLook().waypoint,
+                               CommonInterface::GetMapSettings().waypoint);
+    return;
+  }
+
   if (index >= g_user_frequencies.size())
     return;
 
@@ -272,8 +396,11 @@ UserFrequencyListWidgetImpl::OnPaintItem(Canvas &canvas, const PixelRect rc,
 void
 UserFrequencyListWidgetImpl::OnActivateItem([[maybe_unused]] unsigned index) noexcept
 {
+  if (IsSeparatorIndex(index))
+    return;
+
   if (mode == UserFrequencyListWidget::DialogMode::BROWSE) {
-    if (edit_button != nullptr)
+    if (edit_button != nullptr && !IsAirportIndex(index))
       edit_button->Click();
   } else if (mode != UserFrequencyListWidget::DialogMode::SELECT_BOTH) {
     if (select_button != nullptr)
@@ -285,20 +412,54 @@ UserFrequencyListWidgetImpl::OnActivateItem([[maybe_unused]] unsigned index) noe
 void
 UserFrequencyListWidgetImpl::UpdateButtons() noexcept
 {
-  const bool has_items = !g_user_frequencies.empty();
-  const bool has_selection = has_items &&
-    GetList().GetCursorIndex() < g_user_frequencies.size();
+  const unsigned cursor = GetList().GetCursorIndex();
+  const bool is_separator = IsSeparatorIndex(cursor);
+  const bool is_airport = IsAirportIndex(cursor);
+  const bool is_user_freq = !is_separator && !is_airport;
+
+  const bool has_user_selection = is_user_freq &&
+    !g_user_frequencies.empty() &&
+    cursor < g_user_frequencies.size();
+
+  bool has_airport_freq = false;
+  if (is_airport) {
+    const unsigned ai = GetAirportListIndex(cursor);
+    if (ai < nearby_airports.size())
+      has_airport_freq = nearby_airports[ai].waypoint->radio_frequency.IsDefined();
+  }
+
+  const bool can_select = has_user_selection || has_airport_freq;
 
   if (select_button != nullptr)
-    select_button->SetEnabled(has_selection);
+    select_button->SetEnabled(can_select);
   if (active_button != nullptr)
-    active_button->SetEnabled(has_selection);
+    active_button->SetEnabled(can_select);
   if (standby_button != nullptr)
-    standby_button->SetEnabled(has_selection);
+    standby_button->SetEnabled(can_select);
   if (edit_button != nullptr)
-    edit_button->SetEnabled(has_selection);
+    edit_button->SetEnabled(has_user_selection);
   if (delete_button != nullptr)
-    delete_button->SetEnabled(has_selection);
+    delete_button->SetEnabled(has_user_selection);
+}
+
+void
+UserFrequencyListWidgetImpl::LoadNearbyAirports() noexcept
+{
+  nearby_airports.clear();
+
+  if (backend_components == nullptr ||
+      backend_components->protected_task_manager == nullptr)
+    return;
+
+  ProtectedTaskManager::Lease lease(*backend_components->protected_task_manager);
+  const AlternateList &alternates = lease->GetAlternates();
+
+  for (const auto &alt : alternates) {
+    if (nearby_airports.size() >= 3)
+      break;
+    if (alt.waypoint->radio_frequency.IsDefined())
+      nearby_airports.push_back(alt);
+  }
 }
 
 void
