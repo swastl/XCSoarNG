@@ -50,6 +50,7 @@ MapSettings::SetDefaults() noexcept
   skylines_traffic_map_mode = DisplaySkyLinesTrafficMapMode::SYMBOL;
   teams_traffic_display_style = TeamsTrafficDisplayStyle::ARROW;
   teams_traffic_color = TeamsTrafficColor::GREEN;
+  teams_name_display = TeamsNameDisplay::USERNAME;
   show_95_percent_rule_helpers = false;
 
   trail.SetDefaults();

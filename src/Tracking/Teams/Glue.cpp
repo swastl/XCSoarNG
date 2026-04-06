@@ -163,6 +163,14 @@ Glue::Tick(Settings settings)
             uname != nullptr && uname->is_string())
           m.username = std::string(uname->as_string());
 
+        if (const auto *v = obj.if_contains("firstName");
+            v != nullptr && v->is_string())
+          m.first_name = std::string(v->as_string());
+
+        if (const auto *v = obj.if_contains("lastName");
+            v != nullptr && v->is_string())
+          m.last_name = std::string(v->as_string());
+
         double lat = 0.0, lon = 0.0;
         if (const auto *v = obj.if_contains("latitude");
             v != nullptr && v->is_number())

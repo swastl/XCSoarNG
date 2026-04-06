@@ -277,6 +277,7 @@ constexpr std::string_view TeamsTrackingInterval = "TeamsTrackingInterval";
 constexpr std::string_view TeamsTrackingApiKey = "TeamsTrackingApiKey";
 constexpr std::string_view TeamsTrafficDisplayStyle = "TeamsTrafficDisplayStyle";
 constexpr std::string_view TeamsTrafficColor = "TeamsTrafficColor";
+constexpr std::string_view TeamsNameDisplay = "TeamsNameDisplay";
 
 constexpr std::string_view PCMetUsername = "PCMetUsername";
 constexpr std::string_view PCMetPassword = "PCMetPassword";

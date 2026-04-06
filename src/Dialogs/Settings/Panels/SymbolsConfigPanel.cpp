@@ -25,6 +25,7 @@ enum ControlIndex {
   SKYLINES_TRAFFIC_MAP_MODE,
   TEAMS_TRAFFIC_DISPLAY_STYLE,
   TEAMS_TRAFFIC_COLOR,
+  TEAMS_NAME_DISPLAY,
 };
 
 class SymbolsConfigPanel final
@@ -143,6 +144,13 @@ static constexpr StaticEnumChoice teams_color_list[] = {
   nullptr
 };
 
+static constexpr StaticEnumChoice teams_name_display_list[] = {
+  { TeamsNameDisplay::USERNAME, N_("Username"), N_("Show the username.") },
+  { TeamsNameDisplay::FIRST_NAME, N_("First name"), N_("Show the first name.") },
+  { TeamsNameDisplay::FULL_NAME, N_("Full name"), N_("Show the full name (first and last name).") },
+  nullptr
+};
+
 void
 SymbolsConfigPanel::Prepare([[maybe_unused]] ContainerWindow &parent,
                             [[maybe_unused]] const PixelRect &rc) noexcept
@@ -208,6 +216,10 @@ SymbolsConfigPanel::Prepare([[maybe_unused]] ContainerWindow &parent,
           _("Color used to draw XCSoar Teams aircraft on the map."),
           teams_color_list, (unsigned)settings_map.teams_traffic_color);
 
+  AddEnum(_("Teams name display"),
+          _("Which name to display next to XCSoar Teams aircraft on the map."),
+          teams_name_display_list, (unsigned)settings_map.teams_name_display);
+
   ShowTrailControls(settings_map.trail.length != TrailSettings::Length::OFF);
 }
 
@@ -251,6 +263,9 @@ SymbolsConfigPanel::Save(bool &_changed) noexcept
 
   changed |= SaveValueEnum(TEAMS_TRAFFIC_COLOR, ProfileKeys::TeamsTrafficColor,
                            settings_map.teams_traffic_color);
+
+  changed |= SaveValueEnum(TEAMS_NAME_DISPLAY, ProfileKeys::TeamsNameDisplay,
+                           settings_map.teams_name_display);
 
   _changed |= changed;
 

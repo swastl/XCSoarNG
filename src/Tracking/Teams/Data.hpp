@@ -17,6 +17,8 @@ struct Data {
   struct Member {
     uint32_t user_id;
     std::string username;
+    std::string first_name;
+    std::string last_name;
     GeoPoint location;
     int altitude;
     Angle heading;

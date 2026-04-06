@@ -69,6 +69,12 @@ enum class TeamsTrafficColor : uint8_t {
   CYAN,
 };
 
+enum class TeamsNameDisplay : uint8_t {
+  USERNAME,
+  FIRST_NAME,
+  FULL_NAME,
+};
+
 struct MapItemListSettings {
 
   /** Add an LocationMapItem to the MapItemList? */
@@ -202,6 +208,9 @@ struct MapSettings {
 
   /** Color for Teams traffic symbols on the map */
   TeamsTrafficColor teams_traffic_color;
+
+  /** Which name to display for Teams traffic on the map */
+  TeamsNameDisplay teams_name_display;
 
   FAITriangleSettings fai_triangle_settings;
 

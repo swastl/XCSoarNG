@@ -18,6 +18,7 @@
 #include "util/StaticString.hxx"
 
 #include <cassert>
+#include <string>
 
 static void
 DrawFlarmTraffic(Canvas &canvas, const WindowProjection &projection,
@@ -329,7 +330,26 @@ MapWindow::DrawTeamsTraffic(Canvas &canvas) const noexcept
 
       // Draw name and altitude label above the icon
       StaticString<128> buffer;
-      buffer.Format("%s [%dm]", member.username.c_str(), member.altitude);
+      const char *display_name = member.username.c_str();
+      std::string full_name;
+      switch (map_settings.teams_name_display) {
+      case TeamsNameDisplay::FIRST_NAME:
+        if (!member.first_name.empty())
+          display_name = member.first_name.c_str();
+        break;
+      case TeamsNameDisplay::FULL_NAME:
+        if (!member.first_name.empty() || !member.last_name.empty()) {
+          full_name = member.first_name;
+          if (!full_name.empty() && !member.last_name.empty())
+            full_name += ' ';
+          full_name += member.last_name;
+          display_name = full_name.c_str();
+        }
+        break;
+      default: /* USERNAME */
+        break;
+      }
+      buffer.Format("%s [%dm]", display_name, member.altitude);
 
       TextInBoxMode mode;
       mode.shape = LabelShape::OUTLINED;
