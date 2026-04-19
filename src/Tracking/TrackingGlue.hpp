@@ -14,6 +14,7 @@
 #include "Tracking/SkyLines/Glue.hpp"
 #include "Tracking/SkyLines/Data.hpp"
 #include "Tracking/LiveTrack24/Glue.hpp"
+#include "Tracking/Teams/Glue.hpp"
 #include "util/StaticString.hxx"
 #include "util/TriState.hpp"
 #include "thread/Mutex.hxx"
@@ -45,6 +46,8 @@ class TrackingGlue final
 
   /** Last network update per online target (online buffer GC). */
   std::map<FlarmId, std::chrono::steady_clock::time_point> online_last_received;
+
+  TeamsTracking::Glue teams;
 
   bool shutting_down = false;
 
@@ -109,6 +112,10 @@ private:
                  const AGeoPoint &bottom, const AGeoPoint &top,
                  double lift) override;
   void OnSkyLinesError(std::exception_ptr e) override;
+
+  const TeamsTracking::Data &GetTeamsData() const {
+    return teams.GetData();
+  }
 };
 
 #endif /* HAVE_TRACKING */

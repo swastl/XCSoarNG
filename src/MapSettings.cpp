@@ -49,6 +49,9 @@ MapSettings::SetDefaults() noexcept
   vario_bar_enabled = false;
   show_fai_triangle_areas = false;
   online_traffic_map_mode = DisplayOnlineTrafficMapMode::SYMBOL;
+  teams_traffic_display_style = TeamsTrafficDisplayStyle::ARROW;
+  teams_traffic_color = TeamsTrafficColor::GREEN;
+  teams_name_display = TeamsNameDisplay::USERNAME;
   show_95_percent_rule_helpers = false;
 
   trail.SetDefaults();

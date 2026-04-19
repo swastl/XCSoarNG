@@ -3,6 +3,8 @@
 
 #include "MapWindow.hpp"
 #include "ui/canvas/Icon.hpp"
+#include "ui/canvas/Brush.hpp"
+#include "ui/canvas/Pen.hpp"
 #include "Screen/Layout.hpp"
 #include "Formatter/UserUnits.hpp"
 #include "Look/TrafficLook.hpp"
@@ -10,9 +12,15 @@
 #include "Renderer/TrafficRenderer.hpp"
 #include "FLARM/Friends.hpp"
 #include "MapSettings.hpp"
+#include "Tracking/SkyLines/Data.hpp"
+#include "Tracking/Teams/Data.hpp"
+#include "Math/Screen.hpp"
+#include "util/Macros.hpp"
 #include "util/StringCompare.hxx"
+#include "util/StaticString.hxx"
 
 #include <cassert>
+#include <string>
 
 static void
 DrawFlarmTraffic(Canvas &canvas, const WindowProjection &projection,
@@ -235,3 +243,142 @@ MapWindow::DrawTeammate(Canvas &canvas) const noexcept
       traffic_look.teammate_icon.Draw(canvas, *p);
   }
 }
+
+#ifdef HAVE_SKYLINES_TRACKING
+
+void
+MapWindow::DrawSkyLinesTraffic(Canvas &canvas) const noexcept
+{
+  if (DisplayOnlineTrafficMapMode::OFF == GetMapSettings().online_traffic_map_mode ||
+      skylines_data == nullptr)
+    return;
+
+  canvas.Select(*traffic_look.font);
+
+  const std::lock_guard lock{skylines_data->mutex};
+  for (auto &i : skylines_data->traffic) {
+    if (auto p = render_projection.GeoToScreenIfVisible(i.second.location)) {
+      traffic_look.teammate_icon.Draw(canvas, *p);
+      if (DisplayOnlineTrafficMapMode::SYMBOL_NAME == GetMapSettings().online_traffic_map_mode) {
+        const auto name_i = skylines_data->user_names.find(i.first);
+        const char *name = name_i != skylines_data->user_names.end()
+          ? name_i->second.c_str()
+          : "";
+
+        StaticString<128> buffer;
+        buffer.Format("%s [%um]", name, i.second.altitude);
+
+        TextInBoxMode mode;
+        mode.shape = LabelShape::OUTLINED;
+
+        // Draw the name 16 points below the icon
+        p->y -= Layout::Scale(10);
+        TextInBox(canvas, buffer, *p, mode, GetClientRect());
+      }
+    }
+  }
+}
+
+#endif
+
+#ifdef HAVE_HTTP
+
+void
+MapWindow::DrawTeamsTraffic(Canvas &canvas) const noexcept
+{
+  if (teams_data == nullptr)
+    return;
+
+  const auto &map_settings = GetMapSettings();
+  const bool draw_circle =
+    map_settings.teams_traffic_display_style ==
+    TeamsTrafficDisplayStyle::ARROW_WITH_CIRCLE;
+
+  Color fill_color;
+  switch (map_settings.teams_traffic_color) {
+  case TeamsTrafficColor::BLUE:
+    fill_color = Color(0x00, 0x90, 0xff);
+    break;
+  case TeamsTrafficColor::RED:
+    fill_color = Color(0xfb, 0x35, 0x2f);
+    break;
+  case TeamsTrafficColor::YELLOW:
+    fill_color = Color(0xff, 0xe8, 0x00);
+    break;
+  case TeamsTrafficColor::MAGENTA:
+    fill_color = Color(0xff, 0x00, 0xcb);
+    break;
+  case TeamsTrafficColor::CYAN:
+    fill_color = Color(0x00, 0xff, 0xff);
+    break;
+  default: /* GREEN */
+    fill_color = Color(0x1d, 0xc5, 0x10);
+    break;
+  }
+
+  Brush fill_brush(fill_color);
+
+  const std::lock_guard lock{teams_data->mutex};
+  for (const auto &member : teams_data->members) {
+    /* skip own position - it's the aircraft we're flying */
+    if (member.own_position)
+      continue;
+
+    if (auto p = render_projection.GeoToScreenIfVisible(member.location)) {
+      if (draw_circle) {
+        const Pen circle_pen(Layout::Scale(3), fill_color);
+        canvas.Select(circle_pen);
+        canvas.SelectHollowBrush();
+        const int radius = Layout::Scale(12);
+        canvas.DrawCircle(*p, radius);
+      }
+
+      canvas.SelectBlackPen();
+      canvas.Select(fill_brush);
+
+      // Draw oriented aircraft arrow rotated by heading
+      BulkPixelPoint arrow[] = {
+        { -4, 6 },
+        { 0, -8 },
+        { 4, 6 },
+        { 0, 3 },
+      };
+      const Angle angle = member.heading - render_projection.GetScreenAngle();
+      PolygonRotateShift(arrow, *p, angle, Layout::Scale(100U));
+      canvas.DrawPolygon(arrow, ARRAY_SIZE(arrow));
+
+      // Draw name and altitude label above the icon
+      StaticString<128> buffer;
+      const char *display_name = member.username.c_str();
+      std::string full_name;
+      switch (map_settings.teams_name_display) {
+      case TeamsNameDisplay::FIRST_NAME:
+        if (!member.first_name.empty())
+          display_name = member.first_name.c_str();
+        break;
+      case TeamsNameDisplay::FULL_NAME:
+        if (!member.first_name.empty() || !member.last_name.empty()) {
+          full_name = member.first_name;
+          if (!full_name.empty() && !member.last_name.empty())
+            full_name += ' ';
+          full_name += member.last_name;
+          display_name = full_name.c_str();
+        }
+        break;
+      default: /* USERNAME */
+        break;
+      }
+      buffer.Format("%s [%dm]", display_name, member.altitude);
+
+      TextInBoxMode mode;
+      mode.shape = LabelShape::OUTLINED;
+
+      canvas.Select(*traffic_look.font);
+      PixelPoint label_pos = *p;
+      label_pos.y -= Layout::Scale(draw_circle ? 26 : 20);
+      TextInBox(canvas, buffer, label_pos, mode, GetClientRect());
+    }
+  }
+}
+
+#endif

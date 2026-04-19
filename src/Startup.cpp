@@ -702,6 +702,8 @@ Startup(UI::Display &display)
   if (map_window != nullptr)
     map_window->SetSkyLinesData(&net_components->tracking->GetSkyLinesData());
 # endif
+  if (map_window != nullptr && net_components->tracking != nullptr)
+    map_window->SetTeamsData(&net_components->tracking->GetTeamsData());
   if (map_window != nullptr)
     map_window->SetThermalInfoMap(net_components->tim.get());
 #endif
