@@ -35,7 +35,6 @@
 #include "java/Closeable.hxx"
 #include "java/Global.hxx"
 #include "Android/InternalSensors.hpp"
-#include "Android/Sensor.hpp"
 #endif
 
 #ifdef __APPLE__
@@ -491,6 +490,11 @@ DeviceDescriptor::Close() noexcept
   assert(InMainThread());
   assert(!IsBorrowed());
 
+  /* Cancel SlowReopen(); otherwise a stale OnReopenTimer could call
+     Open() after the port was opened again (e.g. devRestart). */
+  waiting_to_call_open = false;
+  reopen_timer.Cancel();
+
   CancelAsync();
 
 #ifdef HAVE_INTERNAL_GPS
@@ -551,7 +555,12 @@ void
 DeviceDescriptor::OnReopenTimer() noexcept
 {
   assert(InMainThread());
-  
+
+  if (!waiting_to_call_open)
+    return;
+
+  waiting_to_call_open = false;
+
   // This runs after the 5-second delay
   try {
     static MessageOperationEnvironment env;
@@ -559,7 +568,6 @@ DeviceDescriptor::OnReopenTimer() noexcept
   } catch (...) {
     LogError(std::current_exception(), "Failed to reopen device after delay");
   }
-  waiting_to_call_open = false;
 }
 
 void
@@ -568,9 +576,8 @@ DeviceDescriptor::SlowReopen()
   assert(InMainThread());
   assert(!IsBorrowed());
 
-  waiting_to_call_open = true;
-
   Close();
+  waiting_to_call_open = true;
   // Schedule the Open() call after 5 seconds instead of blocking
   reopen_timer.Schedule(std::chrono::seconds(5));
 }
