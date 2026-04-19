@@ -7,6 +7,17 @@ Version 7.45 - not yet released
   - infoboxen: refresh titles after changing the interface language #2314
   - infoboxen: add "Home" InfoBox (waypoint name, arrival height at home,
     distance; tap to change home waypoint) #2320
+  - alternates: Alternate 1/2 InfoBoxes can follow the computed list (AUTO) or
+    a pilot-chosen field (MANUAL); tap the InfoBox to open the alternates list,
+    switch mode, and assign the selected row to that slot (runtime only; AUTO
+    clears the pin).  Titles show Altn 1/2 with AUTO or MAN.
+  - alternates: list holds up to 10 options (was 6); if the task only has one
+    automatic alternate, Alternate 2 no longer shows the same as Alternate 1.
+    Displayed glide is re-solved with the current aircraft state; value colour
+    encodes not reachable, final glide, need climb, and MANUAL on/below glide.
+    Manual updated en/de/fr/pt_BR #2347
+  - android: use physical display metrics for startup DPI (getRealMetrics)
+    #1784
   - android/ios: configure built-in GPS & sensors in the last device slot by
     default
   - status: show G-load availability in device list and variometer source in
@@ -16,6 +27,15 @@ Version 7.45 - not yet released
     dropping the newest InfoBoxes, as we have 130 of them now)
 * calculations
   - restore FFVV NetCoupe contest optimisation #2330
+  - angle bearing/delta normalization uses O(1) wrap (avoids stalls when angles
+    are extremely large; suspected Android freeze #1292)
+* data files
+  - openair: map AY ASRA to aerial sporting/recreational airspace type #1827
+* devices
+  - fix native crash on device reconnect (stale delayed reopen timer) #2382
+* iOS
+  - disable Core Location distance filter for built-in GPS so fixes are not
+    suppressed while stationary #2380
 
 Version 7.44 - 2026-03-22
 * WaypointDetails
