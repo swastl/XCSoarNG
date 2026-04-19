@@ -88,6 +88,14 @@ GlueMapWindow::ShowMapItems(const GeoPoint &location,
 
   builder.AddTraffic(basic.flarm.traffic);
 
+#ifdef HAVE_SKYLINES_TRACKING
+  builder.AddSkyLinesTraffic();
+#endif
+
+#ifdef HAVE_HTTP
+  builder.AddTeamsTraffic();
+#endif
+
 #ifdef ENABLE_OPENGL
 #ifdef HAVE_HTTP
   if (!list.full())
