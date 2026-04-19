@@ -31,6 +31,13 @@ struct MapItem
     LOCATION,
     ARRIVAL_ALTITUDE,
     SELF,
+    TRAFFIC,
+#ifdef HAVE_SKYLINES_TRACKING
+    SKYLINES_TRAFFIC,
+#endif
+#ifdef HAVE_HTTP
+    TEAMS_TRAFFIC,
+#endif
     TASK_OZ,
 #ifdef HAVE_NOAA
     WEATHER,
@@ -38,10 +45,6 @@ struct MapItem
     AIRSPACE,
     THERMAL,
     WAYPOINT,
-    TRAFFIC,
-#ifdef HAVE_SKYLINES_TRACKING
-    SKYLINES_TRAFFIC,
-#endif
     OVERLAY,
     RASP,
   } type;
@@ -210,6 +213,26 @@ struct SkyLinesTrafficMapItem : public MapItem
                          const char *_name)
     :MapItem(Type::SKYLINES_TRAFFIC), id(_id), time_of_day(_time_of_day_ms),
      altitude(_altitude),
+     name(_name) {}
+};
+
+#endif
+
+#ifdef HAVE_HTTP
+
+struct TeamsTrafficMapItem : public MapItem
+{
+  uint32_t user_id;
+  int altitude;
+  Angle heading;
+  GeoPoint location;
+  StaticString<64> name;
+
+  TeamsTrafficMapItem(uint32_t _user_id, int _altitude,
+                      Angle _heading, const GeoPoint &_location,
+                      const char *_name)
+    :MapItem(Type::TEAMS_TRAFFIC), user_id(_user_id),
+     altitude(_altitude), heading(_heading), location(_location),
      name(_name) {}
 };
 
