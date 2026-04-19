@@ -46,6 +46,9 @@ HasDetails(const MapItem &item)
 #ifdef HAVE_SKYLINES_TRACKING
   case MapItem::Type::SKYLINES_TRAFFIC:
 #endif
+#ifdef HAVE_HTTP
+  case MapItem::Type::TEAMS_TRAFFIC:
+#endif
     return false;
 
   case MapItem::Type::LOCATION:
@@ -371,6 +374,9 @@ ShowMapItemDialog(const MapItem &item,
   case MapItem::Type::THERMAL:
 #ifdef HAVE_SKYLINES_TRACKING
   case MapItem::Type::SKYLINES_TRAFFIC:
+#endif
+#ifdef HAVE_HTTP
+  case MapItem::Type::TEAMS_TRAFFIC:
 #endif
     break;
 

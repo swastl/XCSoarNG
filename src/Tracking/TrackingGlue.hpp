@@ -11,6 +11,7 @@
 #include "Tracking/SkyLines/Glue.hpp"
 #include "Tracking/SkyLines/Data.hpp"
 #include "Tracking/LiveTrack24/Glue.hpp"
+#include "Tracking/Teams/Glue.hpp"
 
 struct TrackingSettings;
 struct MoreData;
@@ -25,6 +26,8 @@ class TrackingGlue final
   SkyLinesTracking::Data skylines_data;
 
   LiveTrack24::Glue livetrack24;
+
+  TeamsTracking::Glue teams;
 
 public:
   TrackingGlue(EventLoop &event_loop, CurlGlobal &curl) noexcept;
@@ -48,6 +51,10 @@ private:
 public:
   const SkyLinesTracking::Data &GetSkyLinesData() const {
     return skylines_data;
+  }
+
+  const TeamsTracking::Data &GetTeamsData() const {
+    return teams.GetData();
   }
 };
 

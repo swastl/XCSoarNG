@@ -23,6 +23,9 @@ enum ControlIndex {
   AIRCRAFT_SYMBOL,
   WIND_ARROW_STYLE,
   SKYLINES_TRAFFIC_MAP_MODE,
+  TEAMS_TRAFFIC_DISPLAY_STYLE,
+  TEAMS_TRAFFIC_COLOR,
+  TEAMS_NAME_DISPLAY,
 };
 
 class SymbolsConfigPanel final
@@ -125,6 +128,29 @@ static constexpr StaticEnumChoice skylines_map_mode_list[] = {
   nullptr
 };
 
+static constexpr StaticEnumChoice teams_display_style_list[] = {
+  { TeamsTrafficDisplayStyle::ARROW, N_("Arrow"), N_("Draw a directional arrow for Teams aircraft.") },
+  { TeamsTrafficDisplayStyle::ARROW_WITH_CIRCLE, N_("Arrow with circle"), N_("Draw a directional arrow with a circle around it.") },
+  nullptr
+};
+
+static constexpr StaticEnumChoice teams_color_list[] = {
+  { TeamsTrafficColor::GREEN, N_("Green") },
+  { TeamsTrafficColor::BLUE, N_("Blue") },
+  { TeamsTrafficColor::RED, N_("Red") },
+  { TeamsTrafficColor::YELLOW, N_("Yellow") },
+  { TeamsTrafficColor::MAGENTA, N_("Magenta") },
+  { TeamsTrafficColor::CYAN, N_("Cyan") },
+  nullptr
+};
+
+static constexpr StaticEnumChoice teams_name_display_list[] = {
+  { TeamsNameDisplay::USERNAME, N_("Username"), N_("Show the username.") },
+  { TeamsNameDisplay::FIRST_NAME, N_("First name"), N_("Show the first name.") },
+  { TeamsNameDisplay::FULL_NAME, N_("Full name"), N_("Show the full name (first and last name).") },
+  nullptr
+};
+
 void
 SymbolsConfigPanel::Prepare([[maybe_unused]] ContainerWindow &parent,
                             [[maybe_unused]] const PixelRect &rc) noexcept
@@ -182,6 +208,18 @@ SymbolsConfigPanel::Prepare([[maybe_unused]] ContainerWindow &parent,
           _("Show the SkyLines traffic symbols/names on the map, downloaded from the SkyLines server."),
           skylines_map_mode_list, (unsigned)settings_map.skylines_traffic_map_mode);
 
+  AddEnum(_("Teams aircraft style"),
+          _("Display style for XCSoar Teams aircraft on the map."),
+          teams_display_style_list, (unsigned)settings_map.teams_traffic_display_style);
+
+  AddEnum(_("Teams aircraft color"),
+          _("Color used to draw XCSoar Teams aircraft on the map."),
+          teams_color_list, (unsigned)settings_map.teams_traffic_color);
+
+  AddEnum(_("Teams name display"),
+          _("Which name to display next to XCSoar Teams aircraft on the map."),
+          teams_name_display_list, (unsigned)settings_map.teams_name_display);
+
   ShowTrailControls(settings_map.trail.length != TrailSettings::Length::OFF);
 }
 
@@ -219,6 +257,15 @@ SymbolsConfigPanel::Save(bool &_changed) noexcept
 
   changed |= SaveValueEnum(SKYLINES_TRAFFIC_MAP_MODE, ProfileKeys::SkyLinesTrafficMapMode,
                            settings_map.skylines_traffic_map_mode);
+
+  changed |= SaveValueEnum(TEAMS_TRAFFIC_DISPLAY_STYLE, ProfileKeys::TeamsTrafficDisplayStyle,
+                           settings_map.teams_traffic_display_style);
+
+  changed |= SaveValueEnum(TEAMS_TRAFFIC_COLOR, ProfileKeys::TeamsTrafficColor,
+                           settings_map.teams_traffic_color);
+
+  changed |= SaveValueEnum(TEAMS_NAME_DISPLAY, ProfileKeys::TeamsNameDisplay,
+                           settings_map.teams_name_display);
 
   _changed |= changed;
 
