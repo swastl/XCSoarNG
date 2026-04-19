@@ -271,6 +271,14 @@ constexpr std::string_view LiveTrack24TrackingInterval = "TrackingInterval";
 constexpr std::string_view LiveTrack24TrackingVehicleType = "TrackingVehicleType";
 constexpr std::string_view LiveTrack24TrackingVehicleName = "TrackingVehicleName";
 
+constexpr std::string_view TeamsTrackingEnabled = "TeamsTrackingEnabled";
+constexpr std::string_view TeamsTrackingTeamEnabled = "TeamsTrackingTeamEnabled";
+constexpr std::string_view TeamsTrackingInterval = "TeamsTrackingInterval";
+constexpr std::string_view TeamsTrackingApiKey = "TeamsTrackingApiKey";
+constexpr std::string_view TeamsTrafficDisplayStyle = "TeamsTrafficDisplayStyle";
+constexpr std::string_view TeamsTrafficColor = "TeamsTrafficColor";
+constexpr std::string_view TeamsNameDisplay = "TeamsNameDisplay";
+
 constexpr std::string_view PCMetUsername = "PCMetUsername";
 constexpr std::string_view PCMetPassword = "PCMetPassword";
 constexpr std::string_view PCMetFtpUsername = "PCMetFtpUsername";

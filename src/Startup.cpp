@@ -637,6 +637,10 @@ Startup(UI::Display &display)
     map_window->SetSkyLinesData(&net_components->tracking->GetSkyLinesData());
 #endif
 #endif
+#ifdef HAVE_HTTP
+  if (map_window != nullptr && net_components->tracking != nullptr)
+    map_window->SetTeamsData(&net_components->tracking->GetTeamsData());
+#endif
 
 #ifdef HAVE_HTTP
   if (map_window != nullptr)

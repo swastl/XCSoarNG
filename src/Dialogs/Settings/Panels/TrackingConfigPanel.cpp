@@ -18,6 +18,9 @@
 #include "Interface.hpp"
 #include "UIGlobals.hpp"
 #include "util/NumberParser.hpp"
+#ifdef ANDROID
+#include "Android/QRCodeScanner.hpp"
+#endif
 
 enum ControlIndex {
 #ifdef HAVE_SKYLINES_TRACKING
@@ -40,7 +43,15 @@ enum ControlIndex {
   LT24_VEHICLE_NAME,
   LT24_SERVER,
   LT24_USERNAME,
-  LT24_PASSWORD
+  LT24_PASSWORD,
+#endif
+  TEAMS_SPACER,
+  TEAMS_ENABLED,
+  TEAMS_TEAM_ENABLED,
+  TEAMS_INTERVAL,
+  TEAMS_API_KEY,
+#ifdef ANDROID
+  TEAMS_API_KEY_SCAN_BUTTON,
 #endif
 };
 
@@ -58,6 +69,8 @@ public:
 #ifdef HAVE_LIVETRACK24
   void SetLiveTrack24Enabled(bool enabled);
 #endif
+
+  void SetTeamsEnabled(bool enabled);
 
   /* methods from Widget */
   void Prepare(ContainerWindow &parent, const PixelRect &rc) noexcept override;
@@ -103,6 +116,17 @@ TrackingConfigPanel::SetLiveTrack24Enabled(bool enabled)
 #endif
 
 void
+TrackingConfigPanel::SetTeamsEnabled(bool enabled)
+{
+  SetRowEnabled(TEAMS_TEAM_ENABLED, enabled);
+  SetRowEnabled(TEAMS_INTERVAL, enabled);
+  SetRowEnabled(TEAMS_API_KEY, enabled);
+#ifdef ANDROID
+  SetRowEnabled(TEAMS_API_KEY_SCAN_BUTTON, enabled);
+#endif
+}
+
+void
 TrackingConfigPanel::OnModified(DataField &df) noexcept
 {
 #ifdef HAVE_SKYLINES_TRACKING
@@ -123,11 +147,17 @@ TrackingConfigPanel::OnModified(DataField &df) noexcept
   if (IsDataField(LT24_ENABLED, df)) {
     const DataFieldBoolean &dfb = (const DataFieldBoolean &)df;
     SetLiveTrack24Enabled(dfb.GetValue());
+    return;
   }
 #endif
+
+  if (IsDataField(TEAMS_ENABLED, df)) {
+    const DataFieldBoolean &dfb = (const DataFieldBoolean &)df;
+    SetTeamsEnabled(dfb.GetValue());
+  }
 }
 
-#if (defined HAVE_SKYLINES_TRACKING || defined HAVE_LIVETRACK24)
+#if (defined HAVE_SKYLINES_TRACKING || defined HAVE_LIVETRACK24 || defined HAVE_HTTP)
 
 static constexpr StaticEnumChoice tracking_intervals[] = {
   { 1, "1 sec" },
@@ -240,12 +270,40 @@ TrackingConfigPanel::Prepare(ContainerWindow &parent, const PixelRect &rc) noexc
   AddPassword(_("Password"), "", settings.livetrack24.password);
 #endif
 
+  /* Teams Tracking section */
+#ifdef HAVE_HTTP
+  AddSpacer();
+  AddBoolean("XCSoar Teams",
+             _("Enable live position sharing with XCSoar Teams backend."),
+             settings.teams.enabled, this);
+  AddBoolean(_("Show team positions"),
+             _("Download and display positions of team members on the map."),
+             settings.teams.team_enabled, this);
+  AddEnum(_("Tracking Interval"), nullptr, tracking_intervals,
+          FindClosestTrackingInterval(settings.teams.interval));
+  AddText(_("API Key"),
+          _("Your XCSoar Teams API key for authentication."),
+          settings.teams.api_key);
+#ifdef ANDROID
+  AddButton(_("Scan QR Code"), [this]() {
+    QRCodeScanner::StartScan([this](const char *key) {
+      if (key != nullptr && *key != '\0')
+        LoadValue(TEAMS_API_KEY, key);
+    });
+  });
+#endif
+#endif
+
 #ifdef HAVE_SKYLINES_TRACKING
   SetSkyLinesEnabled(settings.skylines.enabled);
 #endif
 
 #ifdef HAVE_LIVETRACK24
   SetLiveTrack24Enabled(settings.livetrack24.enabled);
+#endif
+
+#ifdef HAVE_HTTP
+  SetTeamsEnabled(settings.teams.enabled);
 #endif
 }
 
@@ -316,6 +374,17 @@ TrackingConfigPanel::Save(bool &_changed) noexcept
 
   changed |= SaveValue(LT24_PASSWORD, ProfileKeys::LiveTrack24Password,
                        settings.livetrack24.password);
+#endif
+
+#ifdef HAVE_HTTP
+  changed |= SaveValue(TEAMS_ENABLED, ProfileKeys::TeamsTrackingEnabled,
+                       settings.teams.enabled);
+  changed |= SaveValue(TEAMS_TEAM_ENABLED, ProfileKeys::TeamsTrackingTeamEnabled,
+                       settings.teams.team_enabled);
+  changed |= SaveValueEnum(TEAMS_INTERVAL, ProfileKeys::TeamsTrackingInterval,
+                           settings.teams.interval);
+  changed |= SaveValue(TEAMS_API_KEY, ProfileKeys::TeamsTrackingApiKey,
+                       settings.teams.api_key);
 #endif
 
   _changed |= changed;

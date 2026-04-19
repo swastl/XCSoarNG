@@ -616,6 +616,7 @@ XCSOAR_SOURCES += \
 	$(SRC)/Android/TextEntryDialog.cpp \
 	$(SRC)/Android/FileProvider.cpp \
 	$(SRC)/Android/ReceiveTask.cpp \
+	$(SRC)/Android/QRCodeScanner.cpp \
 	$(SRC)/Android/Main.cpp
 
 else
@@ -653,6 +654,7 @@ XCSOAR_SOURCES += \
 	$(SRC)/Tracking/SkyLines/Assemble.cpp \
 	$(SRC)/Tracking/SkyLines/Key.cpp \
 	$(SRC)/Tracking/SkyLines/Glue.cpp \
+	$(SRC)/Tracking/Teams/Glue.cpp \
 	$(SRC)/Tracking/TrackingGlue.cpp \
 	$(SRC)/NetComponents.cpp
 else

@@ -7,6 +7,7 @@
 #include "FLARM/List.hpp"
 #include "FLARM/Friends.hpp"
 #include "Tracking/SkyLines/Data.hpp"
+#include "Tracking/Teams/Data.hpp"
 #include "Tracking/TrackingGlue.hpp"
 #include "Components.hpp"
 #include "NetComponents.hpp"
@@ -58,6 +59,31 @@ MapItemListBuilder::AddSkyLinesTraffic()
                                              i.second.altitude,
                                              name));
     }
+  }
+#endif
+}
+
+void
+MapItemListBuilder::AddTeamsTraffic()
+{
+#ifdef HAVE_HTTP
+  if (net_components == nullptr || !net_components->tracking)
+    return;
+
+  const auto &data = net_components->tracking->GetTeamsData();
+  const std::lock_guard lock{data.mutex};
+
+  for (const auto &member : data.members) {
+    if (list.full())
+      break;
+
+    if (member.own_position || !member.location.IsValid())
+      continue;
+
+    if (location.DistanceS(member.location) < range)
+      list.append(new TeamsTrafficMapItem(member.user_id, member.altitude,
+                                          member.heading, member.location,
+                                          member.username.c_str()));
   }
 #endif
 }
