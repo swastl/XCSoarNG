@@ -43,6 +43,10 @@ namespace SkyLinesTracking {
   struct Data;
 }
 
+namespace TeamsTracking {
+  struct Data;
+}
+
 namespace TIM { class Glue; }
 
 class MapWindow :
@@ -156,6 +160,10 @@ protected:
 
 #ifdef HAVE_SKYLINES_TRACKING
   const SkyLinesTracking::Data *skylines_data = nullptr;
+#endif
+
+#ifdef HAVE_HTTP
+  const TeamsTracking::Data *teams_data = nullptr;
 #endif
 
 #ifdef HAVE_HTTP
@@ -275,6 +283,12 @@ public:
 #endif
 
 #ifdef HAVE_HTTP
+  void SetTeamsData(const TeamsTracking::Data *_data) noexcept {
+    teams_data = _data;
+  }
+#endif
+
+#ifdef HAVE_HTTP
   void SetThermalInfoMap(const TIM::Glue *_tim) noexcept {
     tim_glue = _tim;
   }
@@ -334,6 +348,10 @@ protected:
   virtual void RenderTrail(Canvas &canvas, PixelPoint aircraft_pos) noexcept;
   virtual void RenderTrackBearing(Canvas &canvas, PixelPoint aircraft_pos) noexcept;
 
+
+#ifdef HAVE_HTTP
+  void DrawTeamsTraffic(Canvas &canvas) const noexcept;
+#endif
 
   void DrawTeammate(Canvas &canvas) const noexcept;
   void DrawDistanceRings(Canvas &canvas) const noexcept;

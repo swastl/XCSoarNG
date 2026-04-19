@@ -51,6 +51,8 @@ public:
                           const MoreData &basic, const DerivedInfo &calculated);
   void AddTaskOZs(const ProtectedTaskManager &task);
   void AddTraffic(const TrafficList &flarm);
+  void AddSkyLinesTraffic();
+  void AddTeamsTraffic();
   void AddThermals(const ThermalLocatorInfo &thermals,
                    const MoreData &basic, const DerivedInfo &calculated);
 
