@@ -3,6 +3,7 @@
 
 #include "MapItemListRenderer.hpp"
 #include "ui/canvas/Canvas.hpp"
+#include "ui/canvas/Pen.hpp"
 #include "Screen/Layout.hpp"
 #include "MapWindow/Items/MapItem.hpp"
 #include "MapWindow/Items/OverlayMapItem.hpp"
@@ -419,18 +420,56 @@ Draw(Canvas &canvas, PixelRect rc,
 
 #ifdef HAVE_HTTP
 
+[[gnu::const]]
+static Color
+GetTeamsTrafficColor(TeamsTrafficColor color_setting) noexcept
+{
+  switch (color_setting) {
+  case TeamsTrafficColor::BLUE:    return Color(0x00, 0x90, 0xff);
+  case TeamsTrafficColor::RED:     return Color(0xfb, 0x35, 0x2f);
+  case TeamsTrafficColor::YELLOW:  return Color(0xff, 0xe8, 0x00);
+  case TeamsTrafficColor::MAGENTA: return Color(0xff, 0x00, 0xcb);
+  case TeamsTrafficColor::CYAN:    return Color(0x00, 0xff, 0xff);
+  default: /* GREEN */             return Color(0x1d, 0xc5, 0x10);
+  }
+}
+
 static void
 Draw(Canvas &canvas, PixelRect rc,
      const TeamsTrafficMapItem &item,
      const TwoTextRowsRenderer &row_renderer,
-     const AircraftLook &aircraft_look,
      const MapSettings &settings)
 {
   const unsigned line_height = rc.GetHeight();
   const unsigned text_padding = Layout::GetTextPadding();
 
   const PixelPoint pt(rc.left + line_height / 2, rc.top + line_height / 2);
-  AircraftRenderer::Draw(canvas, settings, aircraft_look, item.heading, pt);
+  const bool draw_circle =
+    settings.teams_traffic_display_style == TeamsTrafficDisplayStyle::ARROW_WITH_CIRCLE;
+
+  const Color fill_color = GetTeamsTrafficColor(settings.teams_traffic_color);
+  const Brush fill_brush(fill_color);
+
+  if (draw_circle) {
+    const Pen circle_pen(Layout::Scale(3), fill_color);
+    canvas.Select(circle_pen);
+    canvas.SelectHollowBrush();
+    const int radius = line_height / 2 - text_padding;
+    canvas.DrawCircle(pt, radius);
+  }
+
+  canvas.SelectBlackPen();
+  canvas.Select(fill_brush);
+
+  BulkPixelPoint arrow[] = {
+    { -4, 6 },
+    {  0, -8 },
+    {  4, 6 },
+    {  0, 3 },
+  };
+  PolygonRotateShift({arrow, ARRAY_SIZE(arrow)}, pt, item.heading,
+                     Layout::Scale(100U));
+  canvas.DrawPolygon(arrow, ARRAY_SIZE(arrow));
 
   rc.left += line_height + text_padding;
 
@@ -526,7 +565,7 @@ MapItemListRenderer::Draw(Canvas &canvas, const PixelRect rc,
 #ifdef HAVE_HTTP
   case MapItem::Type::TEAMS_TRAFFIC:
     ::Draw(canvas, rc, (const TeamsTrafficMapItem &)item, row_renderer,
-           look.aircraft, settings);
+           settings);
     break;
 #endif
 

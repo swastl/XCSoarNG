@@ -4,6 +4,7 @@
 #include "MapWindow.hpp"
 #include "ui/canvas/Icon.hpp"
 #include "ui/canvas/Brush.hpp"
+#include "ui/canvas/Pen.hpp"
 #include "Screen/Layout.hpp"
 #include "Formatter/UserUnits.hpp"
 #include "Look/TrafficLook.hpp"
@@ -309,13 +310,16 @@ MapWindow::DrawTeamsTraffic(Canvas &canvas) const noexcept
       continue;
 
     if (auto p = render_projection.GeoToScreenIfVisible(member.location)) {
-      canvas.Select(fill_brush);
-      canvas.SelectBlackPen();
-
       if (draw_circle) {
+        const Pen circle_pen(Layout::Scale(3), fill_color);
+        canvas.Select(circle_pen);
+        canvas.SelectHollowBrush();
         const int radius = Layout::Scale(12);
         canvas.DrawCircle(*p, radius);
       }
+
+      canvas.SelectBlackPen();
+      canvas.Select(fill_brush);
 
       // Draw oriented aircraft arrow rotated by heading
       BulkPixelPoint arrow[] = {
