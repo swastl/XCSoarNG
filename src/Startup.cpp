@@ -922,6 +922,10 @@ Startup(UI::Display &display)
 # endif
   if (net_components->tim != nullptr && data_components != nullptr)
     net_components->tim->SetObservations(data_components->observations.get());
+  if (map_window != nullptr && net_components->tracking != nullptr)
+    map_window->SetTeamsData(&net_components->tracking->GetTeamsData());
+  if (map_window != nullptr)
+    map_window->SetThermalInfoMap(net_components->tim.get());
 #endif
 
   assert(!global_running);

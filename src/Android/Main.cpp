@@ -25,6 +25,7 @@
 #include "TextEntryDialog.hpp"
 #include "CertificateUtil.hpp"
 #include "Product.hpp"
+#include "QRCodeScanner.hpp"
 #include "Language/Language.hpp"
 #include "Language/LanguageGlue.hpp"
 #include "LocalPath.hpp"
@@ -134,6 +135,7 @@ InitNative(JNIEnv *env) noexcept
 
   SAFHelper::Initialise(env);
   SAFOutputStream::Initialise(env);
+  QRCodeScanner::Initialise(env);
 }
 
 gcc_visibility_default
@@ -153,6 +155,7 @@ Java_org_xcsoar_NativeView_deinitNative(JNIEnv *env,
   SAFHelper::Deinitialise(env);
   AndroidTextEntryDialog::Deinitialise(env);
   CertificateUtil::Deinitialise(env);
+  QRCodeScanner::Deinitialise(env);
   BMP085Device::Deinitialise(env);
   I2CbaroDevice::Deinitialise(env);
   NunchuckDevice::Deinitialise(env);

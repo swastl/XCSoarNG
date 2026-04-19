@@ -39,6 +39,15 @@ class NOAAStore;
 class MapOverlay;
 
 class ObservationDatabase;
+namespace SkyLinesTracking {
+  struct Data;
+}
+
+namespace TeamsTracking {
+  struct Data;
+}
+
+namespace TIM { class Glue; }
 
 class MapWindow :
   public DoubleBufferWindow,
@@ -150,6 +159,17 @@ protected:
 #endif
 
   const ObservationDatabase *observations = nullptr;
+#ifdef HAVE_SKYLINES_TRACKING
+  const SkyLinesTracking::Data *skylines_data = nullptr;
+#endif
+
+#ifdef HAVE_HTTP
+  const TeamsTracking::Data *teams_data = nullptr;
+#endif
+
+#ifdef HAVE_HTTP
+  const TIM::Glue *tim_glue = nullptr;
+#endif
 
   bool compass_visible = true;
 
@@ -301,6 +321,24 @@ public:
     observations = db;
   }
 
+#ifdef HAVE_SKYLINES_TRACKING
+  void SetSkyLinesData(const SkyLinesTracking::Data *_data) noexcept {
+    skylines_data = _data;
+  }
+#endif
+
+#ifdef HAVE_HTTP
+  void SetTeamsData(const TeamsTracking::Data *_data) noexcept {
+    teams_data = _data;
+  }
+#endif
+
+#ifdef HAVE_HTTP
+  void SetThermalInfoMap(const TIM::Glue *_tim) noexcept {
+    tim_glue = _tim;
+  }
+#endif
+
   void FlushCaches() noexcept;
 
   using MapWindowBlackboard::ReadBlackboard;
@@ -355,6 +393,10 @@ protected:
   virtual void RenderTrail(Canvas &canvas, PixelPoint aircraft_pos) noexcept;
   virtual void RenderTrackBearing(Canvas &canvas, PixelPoint aircraft_pos) noexcept;
 
+
+#ifdef HAVE_HTTP
+  void DrawTeamsTraffic(Canvas &canvas) const noexcept;
+#endif
 
   void DrawTeammate(Canvas &canvas) const noexcept;
   void DrawDistanceRings(Canvas &canvas) const noexcept;

@@ -92,6 +92,12 @@ HasDetails(const MapItem &item)
 {
   switch (item.type) {
   case MapItem::Type::ARRIVAL_ALTITUDE:
+#ifdef HAVE_SKYLINES_TRACKING
+  case MapItem::Type::SKYLINES_TRAFFIC:
+#endif
+#ifdef HAVE_HTTP
+  case MapItem::Type::TEAMS_TRAFFIC:
+#endif
     return false;
 
   case MapItem::Type::THERMAL:
@@ -757,6 +763,12 @@ ShowMapItemDialog(const MapItem &item,
 
   case MapItem::Type::THERMAL:
     ShowThermalDetails(static_cast<const ThermalMapItem &>(item).thermal);
+#ifdef HAVE_SKYLINES_TRACKING
+  case MapItem::Type::SKYLINES_TRAFFIC:
+#endif
+#ifdef HAVE_HTTP
+  case MapItem::Type::TEAMS_TRAFFIC:
+#endif
     return false;
 
   case MapItem::Type::SELF:

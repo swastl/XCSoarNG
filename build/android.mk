@@ -427,7 +427,9 @@ $(GEN_DIR)/org/xcsoar/R.java: $(PROTOBUF_OUT_DIR)/dirstamp
 ifneq ($(NO_ARCH_READY),y)
 
 # Note: Requires JDK 17 or later. JAVA_HOME should point to JDK 17 installation.
-$(NO_ARCH_OUTPUT_DIR)/classes.zip: $(JAVA_SOURCES) $(GEN_DIR)/org/xcsoar/R.java | $(JAVA_CLASSFILES_DIR)/dirstamp
+ZXING_CORE_JAR = android/lib/zxing-core.jar
+
+$(NO_ARCH_OUTPUT_DIR)/classes.zip: $(JAVA_SOURCES) $(GEN_DIR)/org/xcsoar/R.java $(ZXING_CORE_JAR) | $(JAVA_CLASSFILES_DIR)/dirstamp
 	@$(NQ)echo "  JAVAC   $(JAVA_CLASSFILES_DIR)"
 	$(Q)$(filter-out -Werror,$(JAVAC)) \
 		--release 17 \
@@ -437,7 +439,7 @@ $(NO_ARCH_OUTPUT_DIR)/classes.zip: $(JAVA_SOURCES) $(GEN_DIR)/org/xcsoar/R.java 
 		-Xlint:-serial \
 		-Xlint:-static \
 		-Xlint:-this-escape \
-		-cp $(ANDROID_SDK_PLATFORM_DIR)/android.jar:$(JAVA_CLASSFILES_DIR) \
+		-cp $(ANDROID_SDK_PLATFORM_DIR)/android.jar:$(JAVA_CLASSFILES_DIR):$(ZXING_CORE_JAR) \
 		-d $(JAVA_CLASSFILES_DIR) $(GEN_DIR)/org/xcsoar/R.java \
 		-h $(NATIVE_INCLUDE_DIR) \
 		$(JAVA_SOURCES)
@@ -446,12 +448,12 @@ $(NO_ARCH_OUTPUT_DIR)/classes.zip: $(JAVA_SOURCES) $(GEN_DIR)/org/xcsoar/R.java 
 
 # Note: Using Java 17, but desugaring is still needed because Java 17
 # generates invoke-dynamic for lambdas/method references which D8 must convert.
-$(NO_ARCH_OUTPUT_DIR)/classes.dex: $(NO_ARCH_OUTPUT_DIR)/classes.zip
+$(NO_ARCH_OUTPUT_DIR)/classes.dex: $(NO_ARCH_OUTPUT_DIR)/classes.zip $(ZXING_CORE_JAR)
 	@$(NQ)echo "  D8      $@"
 	$(Q)$(D8) \
 		--min-api 21 \
 		--lib $(ANDROID_SDK_PLATFORM_DIR)/android.jar \
-		--output $(NO_ARCH_OUTPUT_DIR) $(NO_ARCH_OUTPUT_DIR)/classes.zip
+		--output $(NO_ARCH_OUTPUT_DIR) $(NO_ARCH_OUTPUT_DIR)/classes.zip $(ZXING_CORE_JAR)
 
 endif # !NO_ARCH_READY
 
