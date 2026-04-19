@@ -11,6 +11,7 @@
 #include "Tracking/SkyLines/Glue.hpp"
 #include "Tracking/SkyLines/Data.hpp"
 #include "Tracking/LiveTrack24/Glue.hpp"
+#include "Tracking/Teams/Glue.hpp"
 
 struct TrackingSettings;
 struct MoreData;
@@ -25,6 +26,8 @@ class TrackingGlue final
   SkyLinesTracking::Data skylines_data;
 
   LiveTrack24::Glue livetrack24;
+
+  TeamsTracking::Glue teams;
 
   bool shutting_down = false;
 
@@ -52,6 +55,10 @@ private:
                  const AGeoPoint &bottom, const AGeoPoint &top,
                  double lift) override;
   void OnSkyLinesError(std::exception_ptr e) override;
+
+  const TeamsTracking::Data &GetTeamsData() const {
+    return teams.GetData();
+  }
 };
 
 #endif /* HAVE_TRACKING */

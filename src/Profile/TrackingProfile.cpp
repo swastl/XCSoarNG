@@ -57,6 +57,14 @@ static void Load(const ProfileMap &map,
   map.GetEnum(ProfileKeys::LiveTrack24TrackingVehicleType, settings.vehicleType);
   map.Get(ProfileKeys::LiveTrack24TrackingVehicleName, settings.vehicle_name);
 }
+
+static void Load(const ProfileMap &map,
+                 TeamsTracking::Settings &settings) {
+  map.Get(ProfileKeys::TeamsTrackingEnabled, settings.enabled);
+  map.Get(ProfileKeys::TeamsTrackingTeamEnabled, settings.team_enabled);
+  map.Get(ProfileKeys::TeamsTrackingInterval, settings.interval);
+  map.Get(ProfileKeys::TeamsTrackingApiKey, settings.api_key);
+}
 }
 
 void
@@ -64,6 +72,7 @@ Profile::Load(const ProfileMap &map, TrackingSettings &settings)
 {
   Load(map, settings.skylines);
   Load(map, settings.livetrack24);
+  Load(map, settings.teams);
 }
 
 #endif /* HAVE_TRACKING */

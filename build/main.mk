@@ -674,6 +674,7 @@ XCSOAR_SOURCES += \
 	$(SRC)/Android/StorageHotplugBridge.cpp \
 	$(SRC)/Storage/android/AndroidStorageMonitor.cpp \
 	$(SRC)/Storage/android/AndroidStorageHotplugMonitor.cpp \
+	$(SRC)/Android/QRCodeScanner.cpp \
 	$(SRC)/Android/Main.cpp
 
 else
@@ -712,6 +713,7 @@ XCSOAR_SOURCES += \
 	$(SRC)/Tracking/SkyLines/Assemble.cpp \
 	$(SRC)/Tracking/SkyLines/Key.cpp \
 	$(SRC)/Tracking/SkyLines/Glue.cpp \
+	$(SRC)/Tracking/Teams/Glue.cpp \
 	$(SRC)/Tracking/TrackingGlue.cpp \
 	$(SRC)/NetComponents.cpp
 
