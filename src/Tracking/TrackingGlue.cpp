@@ -63,7 +63,8 @@ MakeEffectiveOwnFlarmIds(const CloudSettings::OwnFlarmIdList &configured,
 TrackingGlue::TrackingGlue(EventLoop &event_loop,
                            CurlGlobal &curl) noexcept
   :skylines(event_loop, this),
-   livetrack24(curl)
+   livetrack24(curl),
+   teams(curl)
 {
   online_traffic.Clear();
 }
@@ -89,6 +90,7 @@ TrackingGlue::SetSettings(const TrackingSettings &_settings)
 
   skylines.SetSettings(_settings.skylines, _settings.cloud);
   livetrack24.SetSettings(_settings.livetrack24);
+  teams.SetSettings(_settings.teams);
 }
 
 void
@@ -123,6 +125,7 @@ TrackingGlue::OnTimer(const MoreData &basic, const DerivedInfo &calculated)
   }
 
   livetrack24.OnTimer(basic, calculated);
+  teams.OnTimer(basic, calculated);
 }
 
 void

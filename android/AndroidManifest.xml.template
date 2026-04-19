@@ -73,6 +73,13 @@
       </intent-filter>
     </activity>
 
+    <!-- self-contained Camera1+ZXing QR scanner (no external app required).
+         hardwareAccelerated="true" overrides the app-level setting so that
+         TextureView (which requires hardware acceleration) works correctly. -->
+    <activity android:name="org.xcsoar.QRScanActivity"
+              android:exported="false"
+              android:hardwareAccelerated="true"/>
+
     <provider android:name="org.xcsoar.FileProvider"
               android:authorities="@PACKAGE_NAME@"
               android:exported="false"
@@ -92,6 +99,11 @@
   </application>
 
   <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="35"/>
+
+  <!-- required for the built-in QR code scanner (Camera2 + ZXing) -->
+  <uses-permission android:name="android.permission.CAMERA"/>
+  <!-- declared as not-required so devices without a camera can install -->
+  <uses-feature android:name="android.hardware.camera" android:required="false"/>
 
   <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
                    android:usesPermissionFlags="neverForLocation"/>

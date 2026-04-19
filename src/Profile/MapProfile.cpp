@@ -56,6 +56,9 @@ Profile::Load(const ProfileMap &map, MapSettings &settings)
                    settings.online_traffic_map_mode))
     map.GetEnum(ProfileKeys::SkyLinesTrafficMapMode,
                 settings.online_traffic_map_mode);
+  map.GetEnum(ProfileKeys::TeamsTrafficDisplayStyle, settings.teams_traffic_display_style);
+  map.GetEnum(ProfileKeys::TeamsTrafficColor, settings.teams_traffic_color);
+  map.GetEnum(ProfileKeys::TeamsNameDisplay, settings.teams_name_display);
 
   settings.waypoint.LoadFromProfile();
 
