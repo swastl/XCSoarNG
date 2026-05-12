@@ -20,7 +20,7 @@ enum ControlIndex {
   IP_ADDRESS,
   TCPPort,
   I2CBus, I2CAddr, PressureUsage, Driver, UseSecondDriver, SecondDriver,
-  SyncFromDevice, SyncToDevice, PolarSyncMode,
+  SyncFromDevice, SyncToDevice, SendPosition, PolarSyncMode,
   K6Bt,
 };
 
@@ -152,6 +152,7 @@ DeviceEditWidget::SetConfig(const DeviceConfig &_config) noexcept
   LoadValueEnum(Driver, config.driver_name);
   LoadValue(SyncFromDevice, config.sync_from_device);
   LoadValue(SyncToDevice, config.sync_to_device);
+  LoadValue(SendPosition, config.send_position);
   LoadValueEnum(PolarSyncMode, config.polar_sync);
   LoadValue(K6Bt, config.k6bt);
   LoadValueEnum(EngineTypes, config.engine_type);
@@ -206,6 +207,21 @@ CanSendSettings(const DataField &df) noexcept
 
 [[gnu::pure]]
 static bool
+CanSendPosition(const DataField &df) noexcept
+{
+  const char *driver_name = df.GetAsString();
+  if (driver_name == nullptr)
+    return false;
+
+  const struct DeviceRegister *driver = FindDriverByName(driver_name);
+  if (driver == nullptr)
+    return false;
+
+  return driver->CanSendPosition();
+}
+
+[[gnu::pure]]
+static bool
 CanPassThrough(const DataField &df) noexcept
 {
   const char *driver_name = df.GetAsString();
@@ -217,6 +233,36 @@ CanPassThrough(const DataField &df) noexcept
     return false;
 
   return driver->HasPassThrough();
+}
+
+[[gnu::pure]]
+static bool
+CanReceivePolar(const DataField &df) noexcept
+{
+  const char *driver_name = df.GetAsString();
+  if (driver_name == nullptr)
+    return false;
+
+  const struct DeviceRegister *driver = FindDriverByName(driver_name);
+  if (driver == nullptr)
+    return false;
+
+  return driver->CanReceivePolar();
+}
+
+[[gnu::pure]]
+static bool
+CanSendPolar(const DataField &df) noexcept
+{
+  const char *driver_name = df.GetAsString();
+  if (driver_name == nullptr)
+    return false;
+
+  const struct DeviceRegister *driver = FindDriverByName(driver_name);
+  if (driver == nullptr)
+    return false;
+
+  return driver->CanSendPolar();
 }
 
 void
@@ -252,16 +298,24 @@ DeviceEditWidget::UpdateVisibilities() noexcept
 
   const bool can_receive = CanReceiveSettings(GetDataField(Driver));
   const bool can_send = CanSendSettings(GetDataField(Driver));
+  const bool can_send_position = CanSendPosition(GetDataField(Driver));
   SetRowVisible(SyncFromDevice, DeviceConfig::UsesDriver(type) &&
                 can_receive);
   SetRowVisible(SyncToDevice, DeviceConfig::UsesDriver(type) &&
                 can_send);
-  SetRowVisible(PolarSyncMode, DeviceConfig::UsesDriver(type) &&
-                (can_receive || can_send));
-  if (can_receive || can_send) {
+  SetRowVisible(SendPosition, DeviceConfig::UsesDriver(type) &&
+                can_send_position);
+  const bool can_receive_polar = CanReceivePolar(GetDataField(Driver));
+  const bool can_send_polar = CanSendPolar(GetDataField(Driver));
+  const bool polar_row_applicable = DeviceConfig::UsesDriver(type) &&
+                                    (can_receive_polar || can_send_polar);
+  /* Hide when the driver does not register polar receive/send capability. */
+  SetRowAvailable(PolarSyncMode, polar_row_applicable);
+  SetRowVisible(PolarSyncMode, polar_row_applicable);
+  if (can_receive_polar || can_send_polar) {
     auto &polar_df = (DataFieldEnum &)GetDataField(PolarSyncMode);
     const auto prev = polar_df.GetValue();
-    FillPolarSync(polar_df, can_receive, can_send);
+    FillPolarSync(polar_df, can_receive_polar, can_send_polar);
     polar_df.SetValue(prev);
   }
   SetRowAvailable(K6Bt, maybe_bluetooth);
@@ -366,17 +420,26 @@ DeviceEditWidget::Prepare(ContainerWindow &parent,
              config.sync_to_device, this);
   SetExpertRow(SyncToDevice);
 
+  AddBoolean(_("Emit GPGGA/GPRMC"),
+             _("Tells XCSoar to send its current GPS position to the "
+               "device as $GPGGA and $GPRMC sentences. Turn off when "
+               "another GPS source is already feeding the device on "
+               "the same line. Changes take effect after reconnecting "
+               "the device."),
+             config.send_position, this);
+  SetExpertRow(SendPosition);
+
   DataFieldEnum *polar_sync_df = new DataFieldEnum(this);
   FillPolarSync(*polar_sync_df,
-                CanReceiveSettings(*driver_df),
-                CanSendSettings(*driver_df));
+                CanReceivePolar(*driver_df),
+                CanSendPolar(*driver_df));
   polar_sync_df->SetValue(config.polar_sync);
   Add(_("Polar sync"),
-      _("Synchronize the glide polar between XCSoar and the device. "
-        "'Receive' adopts the polar from the device (e.g. for club "
-        "gliders). 'Send' pushes XCSoar's polar to the device."),
+      _("Synchronize the glide polar between XCSoar and the device "
+        "(LXNAV varios). 'Receive' adopts the polar from the device "
+        "(e.g. for club gliders). 'Send' pushes XCSoar's polar to the "
+        "device."),
       polar_sync_df);
-  SetExpertRow(PolarSyncMode);
 
   AddBoolean("K6Bt",
              _("Whether you use a K6Bt to connect the device."),
@@ -498,8 +561,11 @@ DeviceEditWidget::Save(bool &_changed) noexcept
     if (CanSendSettings(GetDataField(Driver)))
       changed |= SaveValue(SyncToDevice, config.sync_to_device);
 
-    if (CanReceiveSettings(GetDataField(Driver)) ||
-        CanSendSettings(GetDataField(Driver)))
+    if (CanSendPosition(GetDataField(Driver)))
+      changed |= SaveValue(SendPosition, config.send_position);
+
+    if (CanReceivePolar(GetDataField(Driver)) ||
+        CanSendPolar(GetDataField(Driver)))
       changed |= SaveValueEnum(PolarSyncMode, config.polar_sync);
 
     if (CanPassThrough(GetDataField(Driver))) {
