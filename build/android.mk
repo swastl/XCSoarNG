@@ -253,6 +253,7 @@ $(RES_DIR)/drawable-xxxhdpi/notification_icon.png: $(ICON_WHITE_SVG) | $(RES_DIR
 # Vorbis -q 5: nominal quality (~160 kb/s class); was 1 for smallest APK
 OGGENC = oggenc --quiet --quality 5
 
+# Uncompressed in resources.apk: see android_bundle.mk (-0 ogg) for why.
 SOUNDS = fail insert remove beep_bweep beep_clear beep_drip
 SOUND_FILES = $(patsubst %,$(RAW_DIR)/%.ogg,$(SOUNDS))
 
@@ -290,7 +291,7 @@ $(PNG5): $(DRAWABLE_DIR)/%.png: $(DATA)/graphics/%.bmp | $(DRAWABLE_DIR)/dirstam
 	$(Q)$(IM_CONVERT) $< $@
 
 ####### gesture icons from SVG sources
-GESTURES_ANDROID = down dl dr du left ldr ldrdl right rd rl up ud uldr urd urdl
+GESTURES_ANDROID = down dl dr du left ldr ldrdl lu right rd rl up ud uldr urd urdl
 PNG6 := $(addprefix $(DRAWABLE_DIR)/gesture_,$(addsuffix .png,$(GESTURES_ANDROID)))
 $(PNG6): $(DRAWABLE_DIR)/gesture_%.png: doc/manual/figures/gesture_%.svg | $(DRAWABLE_DIR)/dirstamp
 	$(Q)rsvg-convert --width=82 --height=82 $< -o $@
@@ -340,7 +341,7 @@ $(RES_DIR)/values/strings.xml: android/res/values/strings.xml | $(RES_DIR)/value
 $(ANDROID_OUTPUT_DIR)/resources.apk: $(PNG_FILES) $(SOUND_FILES) $(ANDROID_XML_RES_COPIES_NO_STRINGS) $(RES_DIR)/values/strings.xml $(MANIFEST) | $(GEN_DIR)/dirstamp
 	@$(NQ)echo "  AAPT"
 	$(Q)find $(RES_DIR) -name dirstamp -type f -delete
-	$(Q)$(AAPT) package -f -m --auto-add-overlay \
+	$(Q)$(AAPT) package -f -m --auto-add-overlay -0 ogg \
 		--custom-package $(JAVA_PACKAGE) \
 		-M $(MANIFEST) \
 		-S $(RES_DIR) \
@@ -404,12 +405,10 @@ $$(TARGET_OUTPUT_DIR)/$(2)/thirdparty.stamp: FORCE
 $$(TARGET_OUTPUT_DIR)/$(2)/$$(XCSOAR_ABI)/bin/lib$(1).so: $(NATIVE_HEADERS) generate boost FORCE
 	$$(Q)$$(MAKE) TARGET_OUTPUT_DIR=$$(TARGET_OUTPUT_DIR) TARGET=$(3) DEBUG=$$(DEBUG) USE_CCACHE=$$(USE_CCACHE) $$@
 
-# extract symbolication files for Google Play (paths lib/<ABI>/ must match
-# the APK and Play Console native debug symbols upload format)
-# Depend on lib$(1).so (submake) not lib$(1)-ns.so — see android_bundle.mk.
+# Unstripped .so for Google Play; same -ns rationale as android_bundle.mk.
 ANDROID_SYMBOLICATION_BUILD += $$(ANDROID_BUILD)/symbols/lib/$(2)/lib$(1).so
 $$(ANDROID_BUILD)/symbols/lib/$(2)/lib$(1).so: $$(TARGET_OUTPUT_DIR)/$(2)/$$(XCSOAR_ABI)/bin/lib$(1).so | $$(ANDROID_BUILD)/symbols/lib/$(2)/dirstamp
-	$$(Q)$$(TCPREFIX)objcopy$$(EXE) --strip-debug $$(dir $$<)lib$(1)-ns.so $$@
+	$$(Q)cp $$(dir $$<)lib$(1)-ns.so $$@
 
 endef
 
@@ -429,8 +428,10 @@ compile: $(ANDROID_LIB_BUILD)
 
 # Generate symbols.zip (native debug symbols) for Google Play, which
 # allows Google Play to symbolicate native crash stack traces.
+# Zip from inside lib/ so entries are <ABI>/lib*.so (Play rejects lib/<ABI>/...).
+# Only *.so: zipping "." also picked up Make dirstamps and failed Play validation.
 $(TARGET_OUTPUT_DIR)/symbols.zip: $(ANDROID_SYMBOLICATION_BUILD)
-	cd $(ANDROID_BUILD)/symbols && $(ZIP) -r $(abspath $@) lib
+	cd $(ANDROID_BUILD)/symbols/lib && find . -name '*.so' -print | $(ZIP) -r $(abspath $@) -@
 
 else # !FAT_BINARY
 
@@ -450,13 +451,13 @@ ANDROID_LIB_BUILD = $(patsubst %,$(ANDROID_ABI_DIR)/lib%.so,$(ANDROID_LIB_NAMES)
 $(ANDROID_LIB_BUILD): $(ANDROID_ABI_DIR)/lib%.so: $(ABI_BIN_DIR)/lib%.so | $(ANDROID_ABI_DIR)/dirstamp
 	$(Q)cp $< $@
 
-# Native debug symbols for Google Play (single-ABI builds).
+# Native debug symbols for Google Play (single-ABI builds).  Staged under lib/<ABI>/.
 ANDROID_NATIVE_SYMBOL_LIBS = $(foreach N,$(ANDROID_LIB_NAMES),$(ANDROID_BUILD)/native-debug-symbols/lib/$(ANDROID_APK_LIB_ABI)/lib$(N).so)
 $(ANDROID_BUILD)/native-debug-symbols/lib/$(ANDROID_APK_LIB_ABI)/lib%.so: $(ABI_BIN_DIR)/lib%.so | $(ANDROID_BUILD)/native-debug-symbols/lib/$(ANDROID_APK_LIB_ABI)/dirstamp
-	$(Q)$(TCPREFIX)objcopy$(EXE) --strip-debug $(ABI_BIN_DIR)/lib$*-ns.so $@
+	$(Q)cp $(ABI_BIN_DIR)/lib$*-ns.so $@
 
 $(TARGET_OUTPUT_DIR)/symbols.zip: $(ANDROID_NATIVE_SYMBOL_LIBS)
-	cd $(ANDROID_BUILD)/native-debug-symbols && $(ZIP) -r $(abspath $@) lib
+	cd $(ANDROID_BUILD)/native-debug-symbols/lib && find . -name '*.so' -print | $(ZIP) -r $(abspath $@) -@
 
 endif # !FAT_BINARY
 

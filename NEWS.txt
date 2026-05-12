@@ -1,8 +1,56 @@
 Version 7.45 - not yet released
+* devices
+  - FLARM $PGRMZ (when FLARM is detected) feeds igc_pressure_altitude for the
+    ISA logger datum; cleared when strong pressure replaces weak pressure or
+    ignores the sentence
+* ui
+  - infoboxen: new Altitude IGC InfoBox (logger pressure or ISA pressure only)
+  - waypoint search: name filter matches anywhere in the long name and the
+    shortname (typically the ICAO code in SeeYou .cup files), not only at
+    the start, so e.g. "FIELD" finds "AIRFIELD" and "INGEN" finds
+    "DITTINGEN" #2483
+  - waypoint search: each waypoint appears at most once in the result list,
+    even when the typed substring matches both its long name and its
+    shortname #1316
+  - waypoint search: Type filter no longer lists the .xcm map archive as a
+    selectable filter when its embedded waypoints are not loaded (e.g. when
+    a separate WPFileList already supplied the database), so the dropdown
+    no longer offers a filter that always yields zero matches #1376
+  - waypoint search: "Recently Used" Type filter entry shows the
+    recently-visited waypoints again; it had been silently aliased to the
+    unrelated "Map file" filter since the multi-file rework (#1994) due to
+    a positional dropdown/enum mismatch
+  - waypoint search: Type filter now lists every CUP waypoint type
+    (Mountain Top/Pass, Bridge, Tunnel, Tower, Power Plant, Obstacle,
+    Thermal Hotspot, Marker, VOR, NDB, Dam, Castle, Intersection,
+    Reporting Point, PG Take Off / Landing Zone) #2485
+* desktop
+  - command-line: -h/--help and -version/--version print to stdout and exit;
+    unknown options print a short usage line on stderr
+* ui
+  - Waypoint details embedded image: new input mode ``wptimg`` and
+    ``WaypointImage`` events (magnify, shrink, reset, arrows) so keys
+    can be set in the ``.xci`` file without the map's ``default`` key
+    fallback
+* input
+  - F2 = zoom in, F3 = zoom out in pan, on the FLARM radar, and in waypoint
+    image ``wptimg`` (not on the main non-pan map, where F2/F3 stay Checklist
+    and FLARM as before). Traffic: ``next`` and ``previous`` events; FLARM: UP/DOWN
+    and F1/F4 = next/prev target, F2/F3 = zoom. The radar no longer hard-codes
+    d-pad to zoom; bindings come from the ``.xci`` file
+  - ``GotoLookup`` accepts an optional argument to pre-select the Type
+    filter on entry (``recent``/``last_used``, ``airport``, ``landable``,
+    ``turnpoint``, ``start``, ``finish``), so a gesture or key binding can
+    open the waypoint list focused on a category #336
+  - default Left-Up (LU) map gesture opens the Waypoint Selection dialog
+    pre-filtered to recently-used waypoints; listed in the Gesture Help
+    dialog with its own icon #336
 * map
   - obstacles hidden at wider map scales than other non-landables (5000 vs 10000)
   - draw up to 1024 waypoints at once (was 256) #2327
   - terrain: fix fluctuating hill-shading strength #2262
+  - snail trail: Catmull-Rom smoothing between fixes; vario colouring samples
+    high-rate netto from the merge thread between GPS points #2447
 * ui
   - infoboxen: refresh titles after changing the interface language #2314
   - infoboxen: add "Home" InfoBox (waypoint name, arrival height at home,
@@ -11,6 +59,13 @@ Version 7.45 - not yet released
     a pilot-chosen field (MANUAL); tap the InfoBox to open the alternates list,
     switch mode, and assign the selected row to that slot (runtime only; AUTO
     clears the pin).  Titles show Altn 1/2 with AUTO or MAN.
+  - list dialogs: Up/Down move the list (when the list is focused) so
+    filter rows in the same dialog (e.g. waypoint file) still get those keys;
+    Left/Right move the action bar with cursor key selection; current
+    action uses list-focus colours in the light theme and the bright
+    focus colour in dark, like other dialog focus.  Select Airspace: Details
+    and Close are on the main dialog action bar (bottom/edge) so the same
+    keys can reach them after the list, like other list dialogs
   - alternates: list holds up to 10 options (was 6); if the task only has one
     automatic alternate, Alternate 2 no longer shows the same as Alternate 1.
     Displayed glide is re-solved with the current aircraft state; value colour
@@ -22,9 +77,40 @@ Version 7.45 - not yet released
   - airspace list & map item list: grey text for airspaces with a day
     acknowledgement; map item list adds an "Enable" button to clear it (like the
     airspace warnings list) #2404
+  - airspace warnings: keep the cursor key action in sync with which actions
+    are enabled, and the armed action with keyboard focus (no double
+    highlight when e.g. Close is focused and another is cursor-selected);
+    replace Radio with Details; Up/Down move the list, Left/Right the action
+    row, Up from the action row returns to the list
   - Form/DataField/Enum: remove the limit of 128 internal entries (It was
     dropping the newest InfoBoxes, as we have 130 of them now)
   - encode bundled UI OGG sound assets at Vorbis quality 5 (was 1)
+  - tabbed dialogs: show list-style focus on the tab strip when the device has
+    cursor keys and the strip has keyboard focus (or always on devices without
+    cursor keys, where the indicator is informational only)
+  - checklist rich text: Enter on a checkbox advances focus like Down #2405
+  - checklist/help markdown: vhf:…#standby / vhf:…#active links set COM standby or
+    active (optional station name in [text](url); label shows name and MHz);
+    confirmation after tap; documented in doc/checklist.rst; example on the
+    default getting-started checklist
+  - checklist, credits, Quick Guide, configuration: horizontal swipe to flip
+    pager pages (same behaviour as arrow keys); wiring lives in
+    ArrowPagerWidget::Prepare; red trail while drawing the swipe; fix crash when
+    swiping (pager change deferred until after mouse-up) #2122 #2414
+  - Quick Guide "What's New": release notes are Markdown generated at build time
+    from NEWS.txt (headings + merged list lines) instead of truncating the
+    gzipped file at runtime
+  - Quick Guide, getting started: "Safety factors" and "Terrain display" lines
+    use live settings vs factory defaults (not hardcoded unchecked) #2324
+  - Quick Guide, help & configuration checklists: list checkboxes use dialog
+    look and min touch row height; keyboard focus frame on the checkbox; override
+    touch autodetection with -touchscreen or -notouchscreen (non-Android) #2325
+  - waypoint search: stays open until Esc or a successful GoTo / task / home / pan
+    action (pan ends the search so the map is not hidden under the list); same for
+    WaypointDetails select and WaypointDetailsPersistent (was: only after closing
+    details) #749
+  - waypoint list & alternates: waypoint details open above the list; Close without
+    a committed action returns to the list, not the map #620
 * android
   - use physical display metrics for startup DPI (getRealMetrics) #1784
   - UI sounds via preloaded SoundPool (MediaPlayer fallback for early play or
@@ -37,13 +123,20 @@ Version 7.45 - not yet released
   - configure built-in GPS & sensors in the last device slot by default (same on
     iOS)
 * calculations
+  - BrokenDateTime: unified UTC conversion (rename FromUnixTimeUTC to
+    FromUnixTime); Windows TimeGm uses _mkgmtime
   - restore FFVV NetCoupe contest optimisation #2330
   - angle bearing/delta normalization uses O(1) wrap (avoids stalls when angles
     are extremely large; suspected Android freeze #1292)
 * data files
+  - windows: open files with O_BINARY so embedded ZIP (e.g. CUPX POINTS.CUP)
+    is read correctly
   - openair: map AY ASRA to aerial sporting/recreational airspace type #1827
 * devices
   - fix native crash on device reconnect (stale delayed reopen timer) #2382
+  - Polar sync device setting is offered only for drivers that register polar
+    support (currently LXNAV); PutPolar is skipped on other drivers even if an old
+    profile had Polar sync enabled #2457
 * iOS
   - disable Core Location distance filter for built-in GPS so fixes are not
     suppressed while stationary #2380
@@ -95,6 +188,7 @@ Version 7.44 - 2026-03-22
   - checklists: add Markdown support (bold, links, checkboxes)
   - fix home waypoint lost on restart due to async terrain loading #2169
   - fix profile migration ordering of old waypoint/airspace keys
+  - add ability to configure user-defined repositories
 * ui
   - enable goto and waypoint details for location map items (clicking on empty map locations)
   - streamlined, and optimized icons
@@ -764,7 +858,6 @@ Version 7.21 - 2021/12/11
   - Control backlight brightness of the Kobo Glo HD
 * Android
   - re-enable background location and comply with Google Play Store policy
-
 Version 7.20 - 2021/10/22
 * map
   - fix crash in the topography loader

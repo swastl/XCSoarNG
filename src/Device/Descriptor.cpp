@@ -42,6 +42,7 @@
 #endif
 
 #include <cassert>
+#include <exception>
 #include <optional>
 
 class OpenDeviceJob final : public Job {
@@ -404,7 +405,14 @@ try {
 
       StaticString<256> _msg;
       _msg.Format("%s: %s (%s)", _("Unable to open port"), name, msg.c_str());
-      env.SetErrorMessage(_msg);
+      try {
+        if (!env.IsCancelled())
+          env.SetErrorMessage(_msg);
+        else
+          LogFmt("Device-Error without Env: {}", _msg.c_str());
+      } catch ([[maybe_unused]] const std::exception &ex) {
+        LogFmt("Device-Exception without Env: {}", _msg.c_str());
+      }
     }
 
     return false;
@@ -983,6 +991,9 @@ DeviceDescriptor::PutPolar(const GlidePolar &polar,
 
   if (device == nullptr || !config.sync_to_device ||
       config.polar_sync != DeviceConfig::PolarSync::SEND)
+    return true;
+
+  if (driver == nullptr || !driver->CanSendPolar())
     return true;
 
   if (!Borrow())
