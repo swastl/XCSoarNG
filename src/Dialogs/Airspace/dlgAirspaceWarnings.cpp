@@ -6,6 +6,7 @@
 #include "Dialogs/WidgetDialog.hpp"
 #include "Form/Button.hpp"
 #include "Look/DialogLook.hpp"
+#include "Look/MapLook.hpp"
 #include "Formatter/UserUnits.hpp"
 #include "Renderer/TwoTextRowsRenderer.hpp"
 #include "ui/canvas/Canvas.hpp"
@@ -16,6 +17,7 @@
 #include "Airspace/ProtectedAirspaceWarningManager.hpp"
 #include "Airspace/AirspaceWarningManager.hpp"
 #include "Formatter/AirspaceFormatter.hpp"
+#include "Renderer/AirspacePreviewRenderer.hpp"
 #include "Engine/Airspace/AbstractAirspace.hpp"
 #include "util/Macros.hpp"
 #include "Interface.hpp"
@@ -23,6 +25,7 @@
 #include "Widget/ListWidget.hpp"
 #include "UIGlobals.hpp"
 #include "Audio/Sound.hpp"
+#include "util/StringFormat.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -317,6 +320,21 @@ AirspaceWarningListWidget::OnPaintItem(Canvas &canvas,
   const auto &warning = warning_list[i];
   const AbstractAirspace &airspace = warning.GetAirspace();
 
+  PixelRect layout_rc = paint_rc;
+  const unsigned line_height = paint_rc.GetHeight();
+  {
+    const AirspaceLook &airspace_look = UIGlobals::GetMapLook().airspace;
+    const AirspaceRendererSettings &airspace_renderer =
+      CommonInterface::GetMapSettings().airspace;
+
+    const PixelPoint pt(layout_rc.left + line_height / 2,
+                        layout_rc.top + line_height / 2);
+    const unsigned radius = line_height / 2 - padding;
+    AirspacePreviewRenderer::Draw(canvas, airspace, pt, radius,
+                                  airspace_renderer, airspace_look);
+    layout_rc.left += line_height + padding;
+  }
+
   // word "inside" is used as the etalon, because it is longer than "near" and
   // currently (9.4.2011) there is no other possibility for the status text.
   const int status_width = canvas.CalcTextWidth("inside");
@@ -326,7 +344,7 @@ AirspaceWarningListWidget::OnPaintItem(Canvas &canvas,
   // Dynamic columns scaling - "name" column is flexible, altitude and state
   // columns are fixed-width.
   auto [text_altitude_rc, status_rc] =
-    paint_rc.VerticalSplit(paint_rc.right - (2 * padding + status_width));
+    layout_rc.VerticalSplit(layout_rc.right - (2 * padding + status_width));
   auto text_rc =
     text_altitude_rc.VerticalSplit(text_altitude_rc.right - (padding + altitude_width)).first;
   text_rc.right -= padding;
@@ -349,20 +367,26 @@ AirspaceWarningListWidget::OnPaintItem(Canvas &canvas,
 
   if (const auto &solution = warning.GetSolution();
       warning.IsWarning() && !warning.IsInside() && solution.IsValid()) {
+    StringFormat(buffer, ARRAY_SIZE(buffer), _("%d secs"),
+                 (int)solution.elapsed_time.count());
 
-    sprintf(buffer, "%d secs",
-              (int)solution.elapsed_time.count());
-
-    if (solution.distance > 0)
-      sprintf(buffer + strlen(buffer), " dist %d m",
-                (int)solution.distance);
-    else {
+    if (solution.distance > 0) {
+      const size_t len = strlen(buffer);
+      StringFormat(buffer + len, ARRAY_SIZE(buffer) - len,
+                   _(" dist %d m"), (int)solution.distance);
+    } else {
       /* the airspace is right above or below us - show the vertical
          distance */
-      strcat(buffer, " vertical ");
+      const size_t len = strlen(buffer);
+      StringFormat(buffer + len, ARRAY_SIZE(buffer) - len,
+                   "%s", _(" vertical "));
 
+      const size_t len2 = strlen(buffer);
       auto delta = solution.altitude - CommonInterface::Basic().nav_altitude;
-      FormatRelativeUserAltitude(delta, buffer + strlen(buffer), true);
+      char relative_altitude[ARRAY_SIZE(buffer)];
+      FormatRelativeUserAltitude(delta, relative_altitude, true);
+      StringFormat(buffer + len2, ARRAY_SIZE(buffer) - len2,
+                   "%s", relative_altitude);
     }
 
     row_renderer.DrawSecondRow(canvas, text_rc, buffer);
