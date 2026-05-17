@@ -18,10 +18,9 @@
 #include "Formatter/TimeFormatter.hpp"
 #include "RadioFrequency.hpp"
 #include "Asset.hpp"
+#include "util/StringFormat.hpp"
 
 #include <algorithm>
-
-#include <stdio.h>
 
 DigitEntry::DigitEntry(const DialogLook &_look)
   :look(_look),
@@ -1063,17 +1062,17 @@ DigitEntry::OnPaint(Canvas &canvas) noexcept
 
     case Column::Type::HOUR:
       assert(c.value < 24);
-      sprintf(buffer, "%02u", c.value);
+      StringFormat(buffer, sizeof(buffer), "%02u", c.value);
       break;
 
     case Column::Type::DIGIT36:
       assert(c.value < 36);
-      sprintf(buffer, "%02u", c.value);
+      StringFormat(buffer, sizeof(buffer), "%02u", c.value);
       break;
 
     case Column::Type::DIGIT19:
       assert(c.value < 19);
-      sprintf(buffer, "%02u", c.value);
+      StringFormat(buffer, sizeof(buffer), "%02u", c.value);
       break;
 
     case Column::Type::RADIO_FREQURENCY_MHZ_OFFSET:
@@ -1119,13 +1118,13 @@ DigitEntry::OnPaint(Canvas &canvas) noexcept
       break;
 
     case Column::Type::DAY:
-      sprintf(buffer, "%02u", c.value + 1);
+      StringFormat(buffer, sizeof(buffer), "%02u", c.value + 1);
       break;
     case Column::Type::MONTH:
-      sprintf(buffer, "%02u", c.value + 1);
+      StringFormat(buffer, sizeof(buffer), "%02u", c.value + 1);
       break;
     case Column::Type::YEAR:
-      sprintf(buffer, "%04u", c.value + 1900);
+      StringFormat(buffer, sizeof(buffer), "%04u", c.value + 1900);
       break;
 
     case Column::Type::UNIT:
