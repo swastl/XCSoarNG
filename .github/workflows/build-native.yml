@@ -264,6 +264,8 @@ jobs:
         run: |
           xcodebuild -version
 
+      # APK and AAB matrix legs both compile ANDROIDFAT; a single shared key made
+      # parallel jobs race on save and duplicate work. Use one key per leg.
       - name: Cache ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
