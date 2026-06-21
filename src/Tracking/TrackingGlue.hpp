@@ -112,6 +112,10 @@ public:
     dest = i->second;
   }
 
+  const TeamsTracking::Data &GetTeamsData() const {
+    return teams.GetData();
+  }
+
 private:
   /* virtual methods from SkyLinesTracking::Handler */
   void OnTraffic(uint32_t pilot_id, unsigned time_of_day_ms,
@@ -127,10 +131,6 @@ private:
                  const AGeoPoint &bottom, const AGeoPoint &top,
                  double lift) override;
   void OnSkyLinesError(std::exception_ptr e) override;
-
-  const TeamsTracking::Data &GetTeamsData() const {
-    return teams.GetData();
-  }
 };
 
 #endif /* HAVE_TRACKING */
