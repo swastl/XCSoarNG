@@ -393,14 +393,6 @@ public class XCSoar extends Activity implements PermissionManager {
     System.exit(0);
   }
 
-  @Override
-  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-    super.onActivityResult(requestCode, resultCode, data);
-    if (requestCode == QRCodeScanner.REQUEST_CODE) {
-      QRCodeScanner.onActivityResult(resultCode, data);
-    }
-  }
-
   @Override public boolean onKeyDown(int keyCode, final KeyEvent event) {
     if (nativeView != null && nativeView.onKeyDown(keyCode, event))
       return true;
@@ -555,7 +547,9 @@ public class XCSoar extends Activity implements PermissionManager {
                                    Intent data) {
     super.onActivityResult(requestCode, resultCode, data);
 
-    if (requestCode == SAFHelper.REQUEST_CODE_OPEN_TREE) {
+    if (requestCode == QRCodeScanner.REQUEST_CODE) {
+      QRCodeScanner.onActivityResult(resultCode, data);
+    } else if (requestCode == SAFHelper.REQUEST_CODE_OPEN_TREE) {
       if (resultCode == RESULT_OK && data != null) {
         android.net.Uri treeUri = data.getData();
         if (treeUri != null) {
@@ -567,7 +561,6 @@ public class XCSoar extends Activity implements PermissionManager {
           }
         }
       }
-
     }
   }
 
