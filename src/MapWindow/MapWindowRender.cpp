@@ -296,10 +296,6 @@ MapWindow::Render(Canvas &canvas, const PixelRect &rc) noexcept
   //////////////////////////////////////////////// traffic
   // Draw traffic
 
-#ifdef HAVE_SKYLINES_TRACKING
-  DrawSkyLinesTraffic(canvas);
-#endif
-
 #ifdef HAVE_HTTP
   DrawTeamsTraffic(canvas);
 #endif
