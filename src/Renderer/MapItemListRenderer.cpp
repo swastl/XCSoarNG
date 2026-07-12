@@ -438,8 +438,6 @@ Draw(Canvas &canvas, PixelRect rc,
   row_renderer.DrawSecondRow(canvas, rc, info_string);
 }
 
-<<<<<<< HEAD
-=======
 #ifdef HAVE_SKYLINES_TRACKING
 
 /**
@@ -565,7 +563,6 @@ Draw(Canvas &canvas, PixelRect rc,
 
 #endif /* HAVE_HTTP */
 
->>>>>>> edce538f17 (Add XCSoar Teams tracking: REST API position sharing and team display on map (#3))
 static void
 Draw(Canvas &canvas, PixelRect rc,
      const OverlayMapItem &item,
