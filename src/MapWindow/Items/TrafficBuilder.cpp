@@ -6,7 +6,6 @@
 #include "List.hpp"
 #include "FLARM/List.hpp"
 #include "FLARM/Friends.hpp"
-#include "Tracking/SkyLines/Data.hpp"
 #include "Tracking/Teams/Data.hpp"
 #include "Tracking/TrackingGlue.hpp"
 #include "Components.hpp"
@@ -32,38 +31,8 @@ MapItemListBuilder::AddTraffic(const TrafficList &flarm)
 void
 MapItemListBuilder::AddSkyLinesTraffic()
 {
-#ifdef HAVE_SKYLINES_TRACKING
-  if (net_components == nullptr || !net_components->tracking)
-    return;
-
-  const auto &data = net_components->tracking->GetSkyLinesData();
-  const std::lock_guard lock{data.mutex};
-
-  StaticString<32> buffer;
-
-  for (const auto &i : data.traffic) {
-    if (list.full())
-      break;
-
-    if (i.second.location.IsValid() &&
-        location.DistanceS(i.second.location) < range) {
-      const uint32_t id = i.first;
-      auto name_i = data.user_names.find(id);
-      const char *name;
-      if (name_i == data.user_names.end()) {
-        /* no name found */
-        buffer.UnsafeFormat("SkyLines %u", (unsigned)id);
-        name = buffer;
-      } else
-        /* we know the name */
-        name = name_i->second.c_str();
-
-      list.append(new SkyLinesTrafficMapItem(id, i.second.time_of_day,
-                                             i.second.altitude,
-                                             name));
-    }
-  }
-#endif
+  /* SkyLines traffic is now injected into the FLARM traffic list by
+     FlarmTrafficBuilder; AddTraffic() already covers it. */
 }
 
 void
