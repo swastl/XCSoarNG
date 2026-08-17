@@ -1,0 +1,30 @@
+name: XCSoar Android Build
+
+on:
+  workflow_dispatch:
+
+    #push:
+    #branches:
+    #  - main-sw
+
+jobs:
+  android:
+    runs-on: [self-hosted, linux, x64, xcsoar]
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Show workspace
+        run: |
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          git rev-parse HEAD
+          ls -la "$GITHUB_WORKSPACE"
+
+      - name: Build XCSoar
+        run: |
+          docker exec \
+            -w "$GITHUB_WORKSPACE" \
+            xcsoar_dev \
+            bash -lc 'xcsoar-compile ANDROID DEBUG=n'
+
