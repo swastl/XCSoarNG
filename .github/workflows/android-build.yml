@@ -26,5 +26,5 @@ jobs:
           docker exec \
             -w "$GITHUB_WORKSPACE" \
             xcsoar_dev \
-            bash -lc 'xcsoar-compile ANDROID DEBUG=n'
+            bash -lc 'cd "'"$GITHUB_WORKSPACE"'" && pwd && git rev-parse HEAD && xcsoar-compile ANDROID DEBUG=n'
 
