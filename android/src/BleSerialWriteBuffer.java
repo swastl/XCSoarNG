@@ -66,11 +66,21 @@ final class BleSerialWriteBuffer {
 
     boolean success;
 
+    /* Use WRITE_WITH_RESPONSE if the characteristic supports it and does
+       not support WRITE_WITHOUT_RESPONSE, to handle modules like JDY-23
+       that have WRITE (with response) but not WRITE_NO_RESPONSE. */
+    final int props = dataCharacteristic.getProperties();
+    final boolean supportsWriteNoResponse =
+      (props & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0;
+    final int writeType = supportsWriteNoResponse
+      ? BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+      : BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT;
+
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-      int result = gatt.writeCharacteristic(dataCharacteristic, chunk,
-                                            dataCharacteristic.WRITE_TYPE_NO_RESPONSE);
+      int result = gatt.writeCharacteristic(dataCharacteristic, chunk, writeType);
       success = result == BluetoothStatusCodes.SUCCESS;
     } else {
+      dataCharacteristic.setWriteType(writeType);
       dataCharacteristic.setValue(chunk);
       success = gatt.writeCharacteristic(dataCharacteristic);
     }
